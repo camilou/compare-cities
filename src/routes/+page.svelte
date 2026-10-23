@@ -481,7 +481,7 @@
 		transform: translateX(-50%);
 		width: min(820px, calc(100% - 2rem));
 		display: grid;
-		grid-template-columns: 1fr auto 1fr;
+		grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
 		align-items: start;
 		gap: 0.6rem;
 	}
@@ -606,7 +606,7 @@
 	}
 	.row {
 		display: grid;
-		grid-template-columns: 1fr auto 1fr;
+		grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
 		grid-template-areas:
 			'label label label'
 			'va bars vb';
@@ -651,7 +651,7 @@
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 3px;
-		width: clamp(120px, 34vw, 360px);
+		width: clamp(72px, 34vw, 360px);
 		height: 0.7rem;
 	}
 	.bar {
@@ -848,7 +848,7 @@
 		.pickers {
 			top: 0.75rem;
 			width: calc(100% - 1.5rem);
-			grid-template-columns: 1fr auto;
+			grid-template-columns: minmax(0, 1fr) auto;
 			grid-template-areas: 'a swap' 'b swap';
 			gap: 0.4rem;
 		}

@@ -48,6 +48,7 @@ export function cityClimate(city: City): Promise<Climate> {
 /** Transit counts come from our API, which caches Overpass at the edge. */
 export function cityTransit(city: City): Promise<TransitStats> {
 	if (city.transit) return Promise.resolve(city.transit);
+	if (city.transit === null) return Promise.reject(new Error('Too large to query.'));
 	return remembered(`transit:v1:${city.id}`, async () => {
 		const res = await fetch(`/api/transit?id=${city.id}`);
 		if (!res.ok) throw new Error('Transit data is unavailable right now.');

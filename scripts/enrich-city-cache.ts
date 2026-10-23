@@ -16,6 +16,7 @@ const PASSES = (process.argv[2] ?? 'climate,transit,green').split(',');
 const UA = { headers: { 'User-Agent': 'CompareCities/0.2 (city cache enrichment)' } };
 const GREEN_BYTES_PER_DAY = 900e6;
 const GREEN_MAX_KM2 = 5000; // beyond this the park download is a province's worth of forest
+const TRANSIT_MAX_KM2 = 20000; // beyond this Overpass times out (looking at you, Chongqing)
 const INDEX = new URL('../src/lib/data/city-index.json', import.meta.url);
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -70,7 +71,9 @@ const passes: Pass[] = [
 		gap: 5000,
 		run: async (c) => {
 			const area = areaId(c.id);
-			return area ? { transit: parseTransit(await overpass(transitQuery(area), UA)) } : undefined;
+			if (!area) return undefined;
+			if (areaKm2(mainland(c.geometry, c.center)) > TRANSIT_MAX_KM2) return { transit: null };
+			return { transit: parseTransit(await overpass(transitQuery(area), UA)) };
 		}
 	},
 	{

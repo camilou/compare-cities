@@ -36,6 +36,6 @@ export interface City {
 	summary?: { extract: string; image?: string; url: string };
 	// Present in the static per-city cache (static/cities/<id>.json); fetched live otherwise.
 	climate?: Climate;
-	transit?: TransitStats;
+	transit?: TransitStats | null; // null: too large to query
 	green?: GreenStats | null; // null: too large to measure (huge administrative areas)
 }

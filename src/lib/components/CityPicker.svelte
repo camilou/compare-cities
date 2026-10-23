@@ -187,6 +187,7 @@
 
 <style>
 	.picker {
+		min-width: 0;
 		--tone: var(--color-a);
 		--tone-soft: var(--color-a-soft);
 		position: relative;
