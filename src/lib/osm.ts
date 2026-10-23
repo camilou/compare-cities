@@ -8,13 +8,29 @@ export const OVERPASS = [
 	'https://overpass.private.coffee/api/interpreter'
 ];
 
-/** Overpass area id for a Nominatim/OSM id such as "R7444". */
-export function areaId(osmId: string) {
-	const n = Number(osmId.slice(1));
-	if (osmId[0] === 'R') return 3_600_000_000 + n;
-	if (osmId[0] === 'W') return 2_400_000_000 + n;
-	return undefined;
+/**
+ * Overpass polygon filters for a city outline. We pass the outline ourselves rather
+ * than rely on Overpass "areas", which silently don't exist for newer boundaries
+ * (Delhi came back with zero metro stations that way). One filter per significant
+ * part, so cities split by water (New York's boroughs) aren't undercounted.
+ */
+export function polyFilters(shape: Area, maxPoints = 240): string[] {
+	const polys = shape.type === 'Polygon' ? [shape.coordinates] : shape.coordinates;
+	const ringArea = (r: number[][]) => Math.abs(r.reduce((a, p, i) => a + p[0] * r[(i + 1) % r.length][1] - r[(i + 1) % r.length][0] * p[1], 0));
+	const outers = polys.map((p) => p[0]).sort((a, b) => ringArea(b) - ringArea(a));
+	const biggest = ringArea(outers[0]);
+	return outers
+		.filter((r) => ringArea(r) >= biggest * 0.03)
+		.slice(0, 5)
+		.map((ring) => {
+			const step = Math.max(1, Math.ceil(ring.length / maxPoints));
+			const pts = ring.filter((_, i) => i % step === 0);
+			return `poly:"${pts.map(([lon, lat]) => `${lat.toFixed(4)} ${lon.toFixed(4)}`).join(' ')}"`;
+		});
 }
+
+/** `(way(poly:A)[tags]; way(poly:B)[tags];)` for every part of the city. */
+const each = (filters: string[], type: string, tags: string) => `(${filters.map((f) => `${type}(${f})${tags};`).join('')})`;
 
 export async function overpass<T = OverpassResult>(query: string, init: RequestInit = {}): Promise<T> {
 	let last: unknown;
@@ -55,13 +71,12 @@ export interface TransitStats {
 	buswayKm: number; // bus-only roads (BRT)
 }
 
-export const transitQuery = (area: number) => `[out:json][timeout:180];
-area(id:${area})->.a;
-way(area.a)[railway~"^(subway|light_rail|monorail)$"][!service]; make stat k="metro",len=sum(length()); out;
-way(area.a)[highway=busway]; make stat k="busway",len=sum(length()); out;
-(way(area.a)[highway=cycleway]; way(area.a)[~"^cycleway(:both|:left|:right)?$"~"^(lane|track)$"];); make stat k="bike",len=sum(length()); out;
-nwr(area.a)[railway=station][station~"^(subway|light_rail|monorail)$"]; out tags;
-rel(area.a)[route~"^(subway|light_rail|monorail)$"]; out tags;`;
+export const transitQuery = (f: string[]) => `[out:json][timeout:180];
+${each(f, 'way', '[railway~"^(subway|light_rail|monorail)$"][!service]')}; make stat k="metro",len=sum(length()); out;
+${each(f, 'way', '[highway=busway]')}; make stat k="busway",len=sum(length()); out;
+(${each(f, 'way', '[highway=cycleway]')}; ${each(f, 'way', '[~"^cycleway(:both|:left|:right)?$"~"^(lane|track)$"]')};); make stat k="bike",len=sum(length()); out;
+${each(f, 'nwr', '[railway=station][station~"^(subway|light_rail|monorail)$"]')}; out tags;
+${each(f, 'rel', '[route~"^(subway|light_rail|monorail)$"]')}; out tags;`;
 
 export function parseTransit(r: OverpassResult): TransitStats {
 	const km: Record<string, number> = {};
@@ -93,12 +108,11 @@ export interface GreenStats {
 }
 
 const PARKS = 'park|garden|nature_reserve|recreation_ground|dog_park';
-export const greenQuery = (area: number) => `[out:json][timeout:180];
-area(id:${area})->.a;
+export const greenQuery = (f: string[]) => `[out:json][timeout:180];
 (
-  wr(area.a)[leisure~"^(${PARKS}|golf_course)$"];
-  wr(area.a)[landuse~"^(forest|grass|meadow|village_green|recreation_ground|orchard)$"];
-  wr(area.a)[natural~"^(wood|scrub|grassland|heath|wetland)$"];
+  ${each(f, 'wr', `[leisure~"^(${PARKS}|golf_course)$"]`)};
+  ${each(f, 'wr', '[landuse~"^(forest|grass|meadow|village_green|recreation_ground|orchard)$"]')};
+  ${each(f, 'wr', '[natural~"^(wood|scrub|grassland|heath|wetland)$"]')};
 );
 out geom qt;`;
 

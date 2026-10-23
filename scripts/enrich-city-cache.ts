@@ -7,7 +7,7 @@
 // keeps under Overpass's ~1 GB/day fair-use guideline (it pauses when it hits it).
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fetchClimate } from '../src/lib/climate.ts';
-import { areaId, greenQuery, measureGreen, overpass, parseTransit, transitQuery } from '../src/lib/osm.ts';
+import { greenQuery, measureGreen, overpass, parseTransit, polyFilters, transitQuery } from '../src/lib/osm.ts';
 import { areaKm2, mainland } from '../src/lib/geo.ts';
 import type { City } from '../src/lib/types.ts';
 
@@ -57,6 +57,18 @@ async function retry<T>(pass: string, name: string, fn: () => Promise<T>, tries 
 
 type Pass = { key: 'climate' | 'transit' | 'green'; gap: number; run: (c: City) => Promise<Partial<City> | undefined> };
 
+// Transit and green both use Overpass: never more than one query in flight, with a
+// generous pause after each, so a shared free service doesn't notice we exist.
+let overpassQueue: Promise<unknown> = Promise.resolve();
+function politely<T>(fn: () => Promise<T>): Promise<T> {
+	const run = overpassQueue.then(fn, fn);
+	overpassQueue = run.then(
+		() => wait(20_000),
+		() => wait(60_000)
+	);
+	return run;
+}
+
 let greenBytes = 0;
 let greenDayStart = Date.now();
 
@@ -68,20 +80,17 @@ const passes: Pass[] = [
 	},
 	{
 		key: 'transit',
-		gap: 5000,
+		gap: 0, // pacing handled by politely()
 		run: async (c) => {
-			const area = areaId(c.id);
-			if (!area) return undefined;
-			if (areaKm2(mainland(c.geometry, c.center)) > TRANSIT_MAX_KM2) return { transit: null };
-			return { transit: parseTransit(await overpass(transitQuery(area), UA)) };
+			const shape = mainland(c.geometry, c.center);
+			if (areaKm2(shape) > TRANSIT_MAX_KM2) return { transit: null };
+			return { transit: parseTransit(await politely(() => overpass(transitQuery(polyFilters(shape)), UA))) };
 		}
 	},
 	{
 		key: 'green',
-		gap: 5000,
+		gap: 0, // pacing handled by politely()
 		run: async (c) => {
-			const area = areaId(c.id);
-			if (!area) return undefined;
 			const shape = mainland(c.geometry, c.center);
 			const km2 = areaKm2(shape);
 			if (km2 > GREEN_MAX_KM2) return { green: null };
@@ -92,7 +101,7 @@ const passes: Pass[] = [
 				await wait(ms);
 				(greenBytes = 0), (greenDayStart = Date.now());
 			}
-			const r = await overpass(greenQuery(area), UA);
+			const r = await politely(() => overpass(greenQuery(polyFilters(shape)), UA));
 			greenBytes += JSON.stringify(r).length;
 			return { green: measureGreen(r, shape, km2) };
 		}

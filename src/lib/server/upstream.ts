@@ -40,18 +40,31 @@ export const cacheHeaders = (ttl = DAY) => ({
 	'Cache-Control': `public, max-age=${ttl}, s-maxage=${ttl * 7}`
 });
 
-/** Cache any JSON-serialisable result in the edge cache under a synthetic key. */
+/**
+ * Cache a JSON-serialisable result so we ask the free upstream services as rarely
+ * as possible. Two layers:
+ *   1. Workers KV (binding CITY_CACHE), if configured: global and durable.
+ *   2. The Cloudflare edge cache: per data centre and evictable, but free and automatic.
+ */
 export async function edgeCached<T>(
 	key: string,
 	platform: App.Platform | undefined,
 	ttl: number,
 	produce: () => Promise<T>
 ): Promise<T> {
+	const kv = (platform?.env as { CITY_CACHE?: KVNamespace } | undefined)?.CITY_CACHE;
 	const cache = platform?.caches?.default;
 	const req = new Request(`https://cache.compare-cities.internal/${key}`);
 	const hit = await cache?.match(req).catch(() => undefined);
 	if (hit) return hit.json() as Promise<T>;
+	const stored = await kv?.get<T>(key, 'json').catch(() => null);
+	if (stored) {
+		const warm = cache?.put(req, new Response(JSON.stringify(stored), { headers: { 'Cache-Control': `public, max-age=${ttl}` } }));
+		if (warm) platform?.context?.waitUntil(warm.catch(() => {}));
+		return stored;
+	}
 	const value = await produce();
+	if (kv) platform?.context?.waitUntil(kv.put(key, JSON.stringify(value), { expirationTtl: ttl }).catch(() => {}));
 	const put = cache?.put(
 		req,
 		new Response(JSON.stringify(value), {

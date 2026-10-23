@@ -1,7 +1,7 @@
 // Loaders for a city's slower statistics. Cached cities carry them in their
 // static file; everything else is fetched live and remembered in localStorage.
 import { fetchClimate, type Climate } from './climate';
-import { areaId, greenQuery, measureGreen, overpass, type GreenStats, type TransitStats } from './osm';
+import { greenQuery, measureGreen, overpass, polyFilters, type GreenStats, type TransitStats } from './osm';
 import type { Area, City } from './types';
 
 const read = <T>(key: string): T | undefined => {
@@ -56,6 +56,12 @@ export function cityTransit(city: City): Promise<TransitStats> {
 	});
 }
 
+/** Green stats we already have (city file or this browser), without any network. */
+export function knownGreen(city: City): GreenStats | null | undefined {
+	if (city.green !== undefined) return city.green;
+	return read<GreenStats>(`green:v1:${city.id}`);
+}
+
 /**
  * Green space needs every park polygon, which is too heavy for a free Worker,
  * so the browser fetches it from Overpass and rasterises it locally.
@@ -64,8 +70,6 @@ export function cityGreen(city: City, shape: Area, km2: number): Promise<GreenSt
 	if (city.green) return Promise.resolve(city.green);
 	if (city.green === null || km2 > 5000) return Promise.reject(new Error('Too large to measure parks.'));
 	return remembered(`green:v1:${city.id}`, async () => {
-		const area = areaId(city.id);
-		if (!area) throw new Error('No boundary to measure.');
-		return measureGreen(await overpass(greenQuery(area)), shape, km2);
+		return measureGreen(await overpass(greenQuery(polyFilters(shape))), shape, km2);
 	});
 }

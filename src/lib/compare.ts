@@ -317,6 +317,13 @@ const WMO: Record<number, string> = {
 export const weatherIcon = (code: number) => WMO[code] ?? '🌡️';
 
 export async function fetchWeather([lng, lat]: [number, number]): Promise<Weather | undefined> {
+	const key = `weather:${lat.toFixed(2)},${lng.toFixed(2)}`;
+	try {
+		const hit = JSON.parse(sessionStorage.getItem(key) ?? 'null') as { at: number; w: Weather } | null;
+		if (hit && Date.now() - hit.at < 30 * 60_000) return hit.w; // "right now" can be 30 minutes old
+	} catch {
+		/* storage blocked */
+	}
 	try {
 		const res = await fetch(
 			`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code&timezone=auto`
@@ -326,7 +333,13 @@ export async function fetchWeather([lng, lat]: [number, number]): Promise<Weathe
 			timezone: string;
 			utc_offset_seconds: number;
 		};
-		return { tempC: d.current.temperature_2m, code: d.current.weather_code, timezone: d.timezone, utcOffset: d.utc_offset_seconds };
+		const w = { tempC: d.current.temperature_2m, code: d.current.weather_code, timezone: d.timezone, utcOffset: d.utc_offset_seconds };
+		try {
+			sessionStorage.setItem(key, JSON.stringify({ at: Date.now(), w }));
+		} catch {
+			/* storage blocked */
+		}
+		return w;
 	} catch {
 		return undefined;
 	}

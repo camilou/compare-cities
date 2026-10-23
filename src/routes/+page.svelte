@@ -11,7 +11,7 @@
 	import { areaKm2, mainland } from '$lib/geo';
 	import MonthlyChart from '$lib/components/MonthlyChart.svelte';
 	import { CLIMATE_SOURCE, MONTHS } from '$lib/climate';
-	import { fetchCity, cityClimate, cityTransit, cityGreen } from '$lib/citystats';
+	import { fetchCity, cityClimate, cityTransit, cityGreen, knownGreen } from '$lib/citystats';
 	import {
 		derive, rows, funFacts, fetchWeather, weatherIcon, countryOf, num, km2, dataUpdated,
 		type Side,
@@ -42,7 +42,7 @@
 	function loadExtras(s: Side) {
 		const id = s.city.id;
 		if (pending[id]) return;
-		pending[id] = { transit: true, green: true, climate: true };
+		pending[id] = { transit: true, climate: true };
 		const done = (k: keyof Pending) => (pending[id] = { ...pending[id], [k]: false });
 		fetchWeather(s.city.center).then((weather) => weather && patch(id, { weather }));
 		cityClimate(s.city)
@@ -53,11 +53,22 @@
 			.then((transit) => patch(id, { transit }))
 			.catch(() => {})
 			.finally(() => done('transit'));
+		// Parks are only measured live when someone asks: it is a heavy Overpass download.
+		const green = knownGreen(s.city);
+		if (green) patch(id, { green });
+	}
+
+	function measureGreen(s: Side) {
+		const id = s.city.id;
+		pending[id] = { ...pending[id], green: true };
+		greenError = undefined;
 		cityGreen(s.city, s.shape, s.areaKm2)
 			.then((green) => patch(id, { green }))
-			.catch(() => {})
-			.finally(() => done('green'));
+			.catch(() => (greenError = `Couldn't measure ${s.city.name} right now. OpenStreetMap may be busy; try again in a few minutes.`))
+			.finally(() => (pending[id] = { ...pending[id], green: false }));
 	}
+	let greenError = $state<string>();
+	const measurable = (s?: Side) => s && !s.green && s.city.green !== null && s.areaKm2 <= 5000 && !pending[s.city.id]?.green;
 
 	async function load(slot: Slot, pick: Pick) {
 		const token = ++tokens[slot];
@@ -285,6 +296,15 @@
 							<h3>{r.group}</h3>
 							{#if r.group === 'Getting around' && slowTransit}
 								<p>Counting stations and lanes in OpenStreetMap. The first look at a city can take a minute.</p>
+							{/if}
+							{#if r.group === 'Green and climate'}
+								{#each [A, B].filter(measurable) as s (s.city.id)}
+									<button class="measure" onclick={() => measureGreen(s!)}>Measure parks in {s!.city.name}</button>
+								{/each}
+								{#if [A, B].some((s) => s && pending[s.city.id]?.green)}
+									<p>Measuring parks from OpenStreetMap. This takes about a minute.</p>
+								{/if}
+								{#if greenError}<p class="error">{greenError}</p>{/if}
 							{/if}
 						</div>
 					{/if}
@@ -761,6 +781,18 @@
 	}
 	.group + .row {
 		border-top: 0;
+	}
+	.measure {
+		margin: 0.5rem 0.5rem 0 0;
+		padding: 0.45rem 0.9rem;
+		border-radius: 999px;
+		border: 1px solid var(--color-line);
+		font-size: 0.85rem;
+		font-weight: 650;
+	}
+	.measure:hover {
+		border-color: var(--color-a);
+		color: var(--color-a);
 	}
 	.skeleton,
 	.bar.skel,
