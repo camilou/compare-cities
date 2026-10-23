@@ -174,7 +174,7 @@
 	<meta property="og:site_name" content="Compare cities" />
 	<meta property="og:title" content={data.meta.title} />
 	<meta property="og:description" content={data.meta.description} />
-	<meta property="og:url" content={page.url.href} />
+	<meta property="og:url" content={data.meta.url} />
 	{#if data.meta.image}
 		<meta property="og:image" content={data.meta.image} />
 		<meta property="og:image:width" content="1200" />

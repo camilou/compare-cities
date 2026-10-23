@@ -1,14 +1,15 @@
 import { error } from '@sveltejs/kit';
 import { asset, loadCity } from '$lib/server/assets';
 import { svgToPng } from '$lib/server/resvg';
-import { buildCardSvg, cardInput, CARD_SIZE } from '$lib/share/card';
+import { buildBrandSvg, buildCardSvg, cardInput, CARD_SIZE } from '$lib/share/card';
 import { areaKm2, mainland, simplifyTo } from '$lib/geo';
 import type { RequestHandler } from './$types';
 
-// Link-preview image for a pair of cities: /og/R7426387-R7444.png
+// Link-preview images: /og/R7426387-R7444.png for a pair, /og/default.png for the bare site.
 export const GET: RequestHandler = async (event) => {
+	const isDefault = event.params.pair === 'default.png';
 	const m = event.params.pair.match(/^([RW]\d{1,12})-([RW]\d{1,12})\.png$/);
-	if (!m) error(404, 'Not found');
+	if (!m && !isDefault) error(404, 'Not found');
 
 	const cache = event.platform?.caches?.default;
 	// Key on the path only, so junk query strings can't force fresh renders.
@@ -16,12 +17,17 @@ export const GET: RequestHandler = async (event) => {
 	const hit = await cache?.match(key).catch(() => undefined);
 	if (hit) return hit;
 
-	const [a, b] = await Promise.all([loadCity(event, m[1]), loadCity(event, m[2])]);
-	const side = (c: typeof a) => {
-		const shape = mainland(c.geometry, c.center);
-		return { name: c.name, shape: simplifyTo(shape, 1200), center: c.center, areaKm2: areaKm2(shape), population: c.facts.population?.value };
-	};
-	const svg = buildCardSvg(cardInput(side(a), side(b), event.url.host), 'landscape');
+	let svg: string;
+	if (isDefault || !m) {
+		svg = buildBrandSvg(event.url.host);
+	} else {
+		const [a, b] = await Promise.all([loadCity(event, m[1]), loadCity(event, m[2])]);
+		const side = (c: typeof a) => {
+			const shape = mainland(c.geometry, c.center);
+			return { name: c.name, shape: simplifyTo(shape, 1200), center: c.center, areaKm2: areaKm2(shape), population: c.facts.population?.value };
+		};
+		svg = buildCardSvg(cardInput(side(a), side(b), event.url.host), 'landscape');
+	}
 
 	const fonts = await Promise.all(
 		['/fonts/bricolage-500.ttf', '/fonts/bricolage-800.ttf', '/fonts/unbounded-700.ttf'].map(async (p) => {

@@ -47,10 +47,14 @@ export const load: PageServerLoad = async (event) => {
 	const a = 'id' in start.a ? start.a.id : DEFAULTS.a;
 	const b = 'id' in start.b ? start.b.id : DEFAULTS.b;
 	const generic = {
-		title: 'Compare cities: true size and shape',
-		description: 'Lay one city on top of another at its true size and shape, then compare people, transit, parks, climate and the Big Mac index.',
-		image: null as string | null
+		title: 'Compare cities: every city at its true size and shape',
+		description: 'Drop any city on top of another at its true size and shape, then compare people, transit, parks, climate and the Big Mac index.',
+		image: `${event.url.origin}/og/default.png`,
+		url: `${event.url.origin}/`
 	};
+	// Link previews describe what the link itself says. A bare link gets the generic
+	// card: picking the visitor's city would show a crawler's data-centre city instead.
+	if (!params.get('a') || !params.get('b')) return { meta: generic, start };
 	if (!ID.test(a) || !ID.test(b) || !('id' in start.a)) return { meta: generic, start };
 
 	// Cached cities answer in milliseconds; don't hold the page hostage to a slow live lookup.
@@ -67,7 +71,8 @@ export const load: PageServerLoad = async (event) => {
 		meta: {
 			title: `${pair[0].name} vs ${pair[1].name}: true size compared`,
 			description: `${headlineText(card)} See both cities overlaid at their true size, plus people, transit, parks, climate and the Big Mac index.`,
-			image: `${event.url.origin}/og/${a}-${b}.png`
+			image: `${event.url.origin}/og/${a}-${b}.png`,
+			url: `${event.url.origin}/?a=${a}&b=${b}`
 		}
 	};
 };

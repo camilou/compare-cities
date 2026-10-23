@@ -241,3 +241,27 @@ export function cardInput(
 /** Plain-text version of the headline, for link previews and share text. */
 export const headlineText = (input: CardInput) =>
 	input.headline.map((p) => p.text.replace('{a}', input.a.name).replace('{b}', input.b.name)).join('');
+
+/** The link-preview image for the bare site (no cities chosen yet). */
+export function buildBrandSvg(site: string): string {
+	const [W, H] = CARD_SIZE.landscape;
+	// Big contour mark on the right, bleeding off the edge like a map detail.
+	const mark =
+		`<g transform="translate(700 70) scale(13)">` +
+		`<g fill="none" stroke="${C.a}" stroke-width="1.6">` +
+		`<path d="M20 4.5c8.5 0 15 6 15 14.3S28.6 35 19.5 35 5 28.3 5 20 11.5 4.5 20 4.5z"/>` +
+		`<path d="M19.6 10c5.4 0 9.6 4 9.6 9.2s-4 10-9.8 10-9.6-4.3-9.6-9.4S14.2 10 19.6 10z"/>` +
+		`<path d="M19.4 15.3c2.5 0 4.4 1.8 4.4 4.1s-1.9 4.5-4.5 4.5-4.4-1.9-4.4-4.2 2-4.4 4.5-4.4z"/></g>` +
+		`<path fill="${C.b}" stroke="${C.paper}" stroke-width="1.4" stroke-linejoin="round" paint-order="stroke" d="M23 18.5l5.5-2.8 4.7 2.4 1.5 5.2-2.6 4.6-5.4 1.4-4.6-2.8-.7-4.6z"/></g>`;
+	return (
+		`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="${FONT}, sans-serif">` +
+		`<rect width="${W}" height="${H}" fill="${C.paper}"/>` +
+		mark +
+		`<text x="72" y="250" font-family="${BRAND_FONT}" font-size="76" font-weight="700" letter-spacing="-2" fill="${C.ink}">compare</text>` +
+		`<text x="72" y="340" font-family="${BRAND_FONT}" font-size="76" font-weight="700" letter-spacing="-2" fill="${C.ink}">cities</text>` +
+		`<text x="72" y="420" font-size="36" font-weight="500" fill="${C.muted}">Every city at its true size and shape.</text>` +
+		`<text x="72" y="470" font-size="30" font-weight="500" fill="${C.muted}">Drop any city on top of another and compare.</text>` +
+		`<text x="72" y="568" font-size="24" font-weight="500" fill="${C.muted}">${esc(site)}</text>` +
+		`</svg>`
+	);
+}
