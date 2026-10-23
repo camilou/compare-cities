@@ -4,6 +4,7 @@
 	import type { Feature, FeatureCollection } from 'geojson';
 	import { transplant, bbox, type LngLat } from '$lib/geo';
 	import { theme, inks } from '$lib/theme.svelte';
+	import Btn from './Btn.svelte';
 	import type { Area } from '$lib/types';
 
 	interface Shape {
@@ -185,16 +186,16 @@
 
 	{#if home && guest}
 		<div class="tools" role="toolbar" aria-label="Overlay controls">
-			<button onclick={() => rotate(-15)} aria-label="Rotate overlay left">
-				<svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4" /></svg>
-			</button>
+			<Btn size="icon-sm" onclick={() => rotate(-15)} aria-label="Rotate overlay left">
+				{#snippet icon()}<svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4" /></svg>{/snippet}
+			</Btn>
 			<span class="deg tnum" aria-live="polite">{rotation}°</span>
-			<button onclick={() => rotate(15)} aria-label="Rotate overlay right">
-				<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-3-6.2M20 4v4h-4" /></svg>
-			</button>
-			<button class="reset" onclick={reset} disabled={!moved} aria-label="Put the overlay back on the centre">
-				<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4" /></svg>
-			</button>
+			<Btn size="icon-sm" onclick={() => rotate(15)} aria-label="Rotate overlay right">
+				{#snippet icon()}<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-3-6.2M20 4v4h-4" /></svg>{/snippet}
+			</Btn>
+			<Btn size="icon-sm" variant="violet" onclick={reset} disabled={!moved} aria-label="Put the overlay back on the centre">
+				{#snippet icon()}<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4" /></svg>{/snippet}
+			</Btn>
 		</div>
 	{/if}
 
@@ -223,46 +224,17 @@
 		bottom: 0.75rem;
 		display: flex;
 		align-items: center;
-		gap: 0.15rem;
-		padding: 0.3rem;
-		background: var(--color-glass);
-		backdrop-filter: blur(8px);
-		border-radius: 999px;
-		box-shadow: var(--shadow);
-	}
-	.tools button {
-		display: grid;
-		place-items: center;
-		width: 2.5rem;
-		height: 2.5rem;
-		border-radius: 50%;
-		color: var(--color-ink);
-	}
-	.tools button:hover:not(:disabled) {
-		background: var(--color-b-soft);
-		color: var(--color-b);
-	}
-	.tools button:disabled {
-		opacity: 0.35;
-	}
-	.tools svg {
-		width: 1.25rem;
-		height: 1.25rem;
-		fill: none;
-		stroke: currentColor;
-		stroke-width: 2;
-		stroke-linecap: round;
-		stroke-linejoin: round;
+		gap: 0.4rem;
 	}
 	.deg {
-		min-width: 2.6rem;
+		min-width: 2.8rem;
+		padding: 0.3rem 0.5rem;
+		border-radius: 0.6rem;
+		background: var(--color-glass);
+		backdrop-filter: blur(8px);
 		text-align: center;
 		font-size: 0.85rem;
-		font-weight: 600;
-	}
-	.reset {
-		margin-left: 0.15rem;
-		border-left: 1px solid var(--color-line);
+		font-weight: 650;
 	}
 	.loading {
 		position: absolute;
@@ -302,9 +274,6 @@
 		.frame :global(.maplibregl-ctrl-group) {
 			display: none;
 		}
-		.tools button {
-			width: 2.25rem;
-			height: 2.25rem;
-		}
+
 	}
 </style>

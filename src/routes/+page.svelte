@@ -6,6 +6,7 @@
 	import CompareMap from '$lib/components/CompareMap.svelte';
 	import Logo from '$lib/components/Logo.svelte';
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
+	import Btn from '$lib/components/Btn.svelte';
 	import ShareSheet from '$lib/components/ShareSheet.svelte';
 	import { cardInput } from '$lib/share/card';
 	import { areaKm2, mainland, simplifyTo } from '$lib/geo';
@@ -195,10 +196,10 @@
 		<p class="tagline">Every city at its true size and shape.</p>
 		<div class="actions">
 			{#if card}
-				<button class="share-pill" onclick={() => sheet?.open()}>
-					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></svg>
-					<span>Share</span>
-				</button>
+				<Btn class="share-pill" onclick={() => sheet?.open()}>
+					{#snippet icon()}<svg viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></svg>{/snippet}
+					Share
+				</Btn>
 			{/if}
 			<ThemeToggle />
 		</div>
@@ -221,9 +222,9 @@
 			/>
 			{#if errors.a}<p class="error" role="alert">{errors.a}</p>{/if}
 		</div>
-		<button class="swap" onclick={swap} disabled={!A || !B} aria-label="Swap the two cities">
-			<svg viewBox="0 0 24 24"><path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7" /></svg>
-		</button>
+		<Btn class="swap" variant="violet" size="icon" onclick={swap} disabled={!A || !B} aria-label="Swap the two cities">
+			{#snippet icon()}<svg viewBox="0 0 24 24"><path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7" /></svg>{/snippet}
+		</Btn>
 		<div class="slot">
 			<CityPicker
 				label="City to lay on top"
@@ -270,10 +271,12 @@
 					{/if}
 				</p>
 			{/if}
-			<button class="share-big" onclick={() => sheet?.open()}>
-				<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></svg>
-				Share this comparison
-			</button>
+			<div class="share-big">
+				<Btn variant="tangerine" size="lg" onclick={() => sheet?.open()}>
+					{#snippet icon()}<svg viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></svg>{/snippet}
+					Share this comparison
+				</Btn>
+			</div>
 		</section>
 
 		<section class="block" aria-labelledby="facts-h">
@@ -302,7 +305,7 @@
 							{/if}
 							{#if r.group === 'Green and climate'}
 								{#each [A, B].filter(measurable) as s (s.city.id)}
-									<button class="measure" onclick={() => measureGreen(s!)}>Measure parks in {s!.city.name}</button>
+									<span class="measure"><Btn size="sm" onclick={() => measureGreen(s!)}>Measure parks in {s!.city.name}</Btn></span>
 								{/each}
 								{#if [A, B].some((s) => s && pending[s.city.id]?.green)}
 									<p>Measuring parks from OpenStreetMap. This takes about a minute.</p>
@@ -463,40 +466,8 @@
 		align-items: center;
 		gap: 0.5rem;
 	}
-	.share-pill,
 	.share-big {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.5rem;
-		border-radius: 999px;
-		font-weight: 650;
-	}
-	.share-pill {
-		height: 2.6rem;
-		padding: 0 1rem 0 0.85rem;
-		background: var(--color-card);
-		box-shadow: var(--shadow);
-	}
-	.share-big {
-		margin-top: 1.25rem;
-		padding: 0.8rem 1.3rem 0.8rem 1.1rem;
-		background: var(--color-ink);
-		color: var(--color-paper);
-		box-shadow: var(--shadow);
-		transition: transform 0.15s;
-	}
-	.share-big:hover {
-		transform: translateY(-1px);
-	}
-	.share-pill svg,
-	.share-big svg {
-		width: 1.15rem;
-		height: 1.15rem;
-		fill: none;
-		stroke: currentColor;
-		stroke-width: 2.2;
-		stroke-linecap: round;
-		stroke-linejoin: round;
+		margin-top: 1.5rem;
 	}
 	@media (max-width: 900px) {
 		.tagline {
@@ -526,32 +497,6 @@
 		grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
 		align-items: start;
 		gap: 0.6rem;
-	}
-	.swap {
-		display: grid;
-		place-items: center;
-		width: 3.25rem;
-		height: 3.25rem;
-		border-radius: 50%;
-		background: var(--color-ink);
-		color: var(--color-paper);
-		box-shadow: var(--shadow);
-		transition: transform 0.25s;
-	}
-	.swap:hover:not(:disabled) {
-		transform: rotate(180deg);
-	}
-	.swap:disabled {
-		opacity: 0.4;
-	}
-	.swap svg {
-		width: 1.3rem;
-		height: 1.3rem;
-		fill: none;
-		stroke: currentColor;
-		stroke-width: 2.2;
-		stroke-linecap: round;
-		stroke-linejoin: round;
 	}
 	.error {
 		margin: 0.4rem 0.5rem 0;
@@ -795,16 +740,8 @@
 		border-top: 0;
 	}
 	.measure {
-		margin: 0.5rem 0.5rem 0 0;
-		padding: 0.45rem 0.9rem;
-		border-radius: 999px;
-		border: 1px solid var(--color-line);
-		font-size: 0.85rem;
-		font-weight: 650;
-	}
-	.measure:hover {
-		border-color: var(--color-a);
-		color: var(--color-a);
+		display: inline-block;
+		margin: 0.6rem 0.5rem 0 0;
 	}
 	.skeleton,
 	.bar.skel,
@@ -912,15 +849,13 @@
 		.pickers > .slot:last-child {
 			grid-area: b;
 		}
-		.swap {
+		.pickers > :global(.swap) {
 			grid-area: swap;
 			align-self: center;
-			width: 2.75rem;
-			height: 2.75rem;
-			transform: rotate(90deg);
 		}
-		.swap:hover:not(:disabled) {
-			transform: rotate(270deg);
+		/* Cities are stacked here, so swap means up/down. */
+		.pickers > :global(.swap svg) {
+			transform: rotate(90deg);
 		}
 		.verdict {
 			margin-top: 1.75rem;

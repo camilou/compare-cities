@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { renderCard } from '$lib/share/render';
 	import { headlineText, type CardFormat, type CardInput } from '$lib/share/card';
+	import Btn from './Btn.svelte';
 
 	let { input, url }: { input: CardInput; url: string } = $props();
 
@@ -103,9 +104,9 @@
 	<div class="sheet">
 		<header>
 			<h2 id="share-title">Share this comparison</h2>
-			<button class="close" onclick={() => dialog.close()} aria-label="Close">
-				<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></svg>
-			</button>
+			<Btn size="icon-sm" onclick={() => dialog.close()} aria-label="Close">
+				{#snippet icon()}<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></svg>{/snippet}
+			</Btn>
 		</header>
 
 		<div class="formats" role="radiogroup" aria-label="Image shape">
@@ -123,15 +124,24 @@
 
 		<div class="primary">
 			{#if canShareFiles}
-				<button class="btn main" onclick={shareNative} disabled={!blob}>Share image</button>
+				<Btn variant="tangerine" onclick={shareNative} disabled={!blob}>
+					{#snippet icon()}<svg viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></svg>{/snippet}
+					Share image
+				</Btn>
 			{/if}
-			<button class="btn" class:main={!canShareFiles} onclick={download} disabled={!blob}>Download image</button>
-			<button class="btn" onclick={copyLink} aria-live="polite">{copied ? 'Link copied' : 'Copy link'}</button>
+			<Btn variant={canShareFiles ? 'paper' : 'tangerine'} onclick={download} disabled={!blob}>
+				{#snippet icon()}<svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14" /></svg>{/snippet}
+				Download image
+			</Btn>
+			<Btn onclick={copyLink} aria-live="polite">
+				{#snippet icon()}<svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" /></svg>{/snippet}
+				{copied ? 'Link copied' : 'Copy link'}
+			</Btn>
 		</div>
 
 		<ul class="targets">
 			{#each targets as t (t.name)}
-				<li><a href={t.href} target="_blank" rel="noopener">{t.name}</a></li>
+				<li><Btn size="sm" href={t.href} target="_blank" rel="noopener">{t.name}</Btn></li>
 			{/each}
 		</ul>
 	</div>
@@ -175,24 +185,6 @@
 	h2 {
 		font-size: 1.3rem;
 		font-weight: 750;
-	}
-	.close {
-		display: grid;
-		place-items: center;
-		width: 2.5rem;
-		height: 2.5rem;
-		border-radius: 50%;
-	}
-	.close:hover {
-		background: var(--color-paper);
-	}
-	.close svg {
-		width: 1.2rem;
-		height: 1.2rem;
-		stroke: currentColor;
-		stroke-width: 2.2;
-		stroke-linecap: round;
-		fill: none;
 	}
 	.formats {
 		display: inline-flex;
@@ -257,40 +249,16 @@
 	.primary {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.5rem;
+		gap: 0.6rem;
 	}
-	.btn {
+	.primary > :global(.btn) {
 		flex: 1 1 auto;
-		padding: 0.75rem 1.1rem;
-		border-radius: 999px;
-		font-weight: 650;
-		background: var(--color-paper);
-		color: var(--color-ink);
-		white-space: nowrap;
-	}
-	.btn.main {
-		background: var(--color-ink);
-		color: var(--color-paper);
-	}
-	.btn:disabled {
-		opacity: 0.5;
 	}
 	.targets {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.4rem;
-	}
-	.targets a {
-		display: inline-block;
-		padding: 0.45rem 0.9rem;
-		border-radius: 999px;
-		border: 1px solid var(--color-line);
-		font-size: 0.9rem;
-		font-weight: 600;
-	}
-	.targets a:hover {
-		border-color: var(--color-a);
-		color: var(--color-a);
+		gap: 0.5rem 0.4rem;
+		padding-top: 0.25rem;
 	}
 	@media (max-width: 640px) {
 		dialog {
