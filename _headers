@@ -1,0 +1,13 @@
+# Browser caching for static files (served straight from Cloudflare, no Worker involved).
+# City files change when the cache robots add data: one day fresh, a week of stale-while-revalidate.
+/cities/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/carto/*
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=2592000
+
+/og/default.png
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800

@@ -1,4 +1,4 @@
-import { loadCity } from '$lib/server/assets';
+import { cachedCity } from '$lib/server/assets';
 import { areaKm2, mainland, simplifyTo } from '$lib/geo';
 import { cardInput, headlineText } from '$lib/share/card';
 import cityIndex from '$lib/data/city-index.json';
@@ -57,9 +57,10 @@ export const load: PageServerLoad = async (event) => {
 	if (!params.get('a') || !params.get('b')) return { meta: generic, start };
 	if (!ID.test(a) || !ID.test(b) || !('id' in start.a)) return { meta: generic, start };
 
-	// Cached cities answer in milliseconds; don't hold the page hostage to a slow live lookup.
-	const pair = await within(Promise.all([loadCity(event, a), loadCity(event, b)]).catch(() => undefined), 2500);
-	if (!pair) return { meta: generic, start };
+	// Previews only describe cached cities: cheap, and random ids can't trigger live lookups.
+	const found = await within(Promise.all([cachedCity(event, a), cachedCity(event, b)]).catch(() => undefined), 2500);
+	if (!found?.[0] || !found[1]) return { meta: generic, start };
+	const pair = [found[0], found[1]] as const;
 
 	const side = (c: (typeof pair)[number]) => {
 		const shape = mainland(c.geometry, c.center);

@@ -99,13 +99,25 @@
 
 	/** Live lookups aren't pre-clipped like cached cities: remove the sea here, quickly or not at all. */
 	async function dryLand(city: City): Promise<City> {
+		const key = `land:v1:${city.id}`;
+		try {
+			const kept = localStorage.getItem(key);
+			if (kept) return { ...city, geometry: JSON.parse(kept), land: true };
+		} catch {
+			/* storage blocked */
+		}
+		const deadline = AbortSignal.timeout(5000); // cancels pending tile downloads too
 		try {
 			const { clipToLand, fetchTile } = await import('$lib/land');
-			const clipped = await Promise.race([
-				clipToLand(city.geometry, fetchTile, { maxTiles: 36, maxZoom: 12 }),
-				new Promise<never>((_, reject) => setTimeout(() => reject(new Error('slow')), 5000))
-			]);
-			return clipped.touched ? { ...city, geometry: clipped.geometry, land: true } : city;
+			const clipped = await clipToLand(city.geometry, fetchTile, { maxTiles: 36, maxZoom: 12, signal: deadline });
+			if (!clipped.touched) return city;
+			const geometry = simplifyTo(clipped.geometry, 3000);
+			try {
+				localStorage.setItem(key, JSON.stringify(geometry));
+			} catch {
+				/* storage full: fine, we'll clip again next time */
+			}
+			return { ...city, geometry, land: true };
 		} catch {
 			return city; // keep the official outline rather than block the page
 		}

@@ -85,7 +85,8 @@
 		searchLocal(q);
 		clearTimeout(timer);
 		controller?.abort();
-		if (q.trim().length < 2) {
+		// The built-in list of 1,000 cities answers most searches without any network call.
+		if (q.trim().length < 3 || local.length >= 4) {
 			results = [];
 			return;
 		}

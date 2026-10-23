@@ -5,6 +5,23 @@ export const USER_AGENT = 'CompareCities/1.0 (+https://compare-cities.hacer.work
 
 const DAY = 60 * 60 * 24;
 
+// Pace calls to the free services (per Worker isolate): Nominatim's policy is one
+// request per second, Photon asks for moderation too. If the queue gets long, fail
+// fast with "busy" rather than pile up requests behind each other.
+const PACE: Record<string, { gap: number; maxWait: number; next: number }> = {
+	'nominatim.openstreetmap.org': { gap: 1100, maxWait: 8000, next: 0 },
+	'photon.komoot.io': { gap: 200, maxWait: 3000, next: 0 }
+};
+async function takeTurn(url: string) {
+	const pace = PACE[new URL(url).host];
+	if (!pace) return;
+	const now = Date.now();
+	const start = Math.max(now, pace.next);
+	if (start - now > pace.maxWait) throw new Error(`${new URL(url).host} busy`);
+	pace.next = start + pace.gap;
+	if (start > now) await new Promise((r) => setTimeout(r, start - now));
+}
+
 export async function cachedJson<T>(
 	url: string,
 	platform: App.Platform | undefined,
@@ -16,6 +33,7 @@ export async function cachedJson<T>(
 	if (hit) return hit.json() as Promise<T>;
 
 	const init = { headers: { 'User-Agent': USER_AGENT, Accept: 'application/json', 'Accept-Language': 'en' } };
+	await takeTurn(url);
 	let res = await fetch(url, init);
 	if (res.status === 429 || res.status === 503) {
 		// One polite retry for burst limits (Wikidata/Nominatim), never longer than 2.5 s.

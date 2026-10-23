@@ -12,6 +12,13 @@
 	},
 	"workers_dev": true,
 	"preview_urls": true,
+	// Durable, global cache for finished city lookups and transit (see src/lib/server/upstream.ts).
+	"kv_namespaces": [{ "binding": "CITY_CACHE", "id": "e3ae66515ce247adbee5fdab3b52b06d" }],
+	// Per-IP limits so nobody can hammer the free upstream services through us.
+	"ratelimits": [
+		{ "name": "API_LIMITER", "namespace_id": "4101", "simple": { "limit": 60, "period": 60 } },
+		{ "name": "RENDER_LIMITER", "namespace_id": "4102", "simple": { "limit": 20, "period": 60 } }
+	],
 	"observability": {
 		"logs": {
 			"enabled": true,

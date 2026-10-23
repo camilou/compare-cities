@@ -102,16 +102,37 @@ many Wikipedias have an article about them, which is why Lyon makes the cut and
 "Dhaka Division" (a 20,000 km² region pretending to be a city) does not.
 
 Live lookups are cached too: finished cities and transit for 30 days at the edge
-(plus Workers KV if you bind one, see below), and the heavy park measurement for
+(plus Workers KV, globally), and the heavy park measurement for
 uncached cities only runs when someone clicks "Measure parks".
 
-Optional, for a global cache that survives edge evictions:
+## If this goes viral (fingers crossed)
 
-```sh
-pnpm exec wrangler kv namespace create CITY_CACHE
-# then add the printed id to wrangler.jsonc:
-# "kv_namespaces": [{ "binding": "CITY_CACHE", "id": "<id>" }]
-```
+Everything is cached in layers so a traffic spike lands on Cloudflare, not on the
+free services we borrow data from:
+
+| Layer | What it holds | For how long |
+| --- | --- | --- |
+| Static files (no Worker at all) | 1,000 city files, fonts, textures, the default preview image | 1 day fresh + a week stale-while-revalidate (fonts: forever) |
+| Edge cache | Shared comparison pages, preview images, finished city lookups, transit, every upstream answer | 1 to 30 days |
+| Workers KV | Finished city lookups and transit, globally and durably | 30 days |
+| Your browser | Climate, transit, parks, land-clipped outlines, weather (30 min), search via the built-in city list | Until you clear it |
+
+And some seatbelts:
+
+- **Rate limits** per IP: 60 API calls and 20 fresh preview renders a minute.
+  Cached preview images are never limited, so WhatsApp's crawler can unfurl a
+  viral link as often as it likes.
+- **Nominatim** is paced to one request per second (its policy), **Photon** to five,
+  and both fail fast with a polite "busy" instead of queueing forever.
+- **Previews only for cached cities.** Random ids can't trigger live lookups or
+  expensive image renders.
+- **Live parks only on click**, and the browser does the heavy lifting.
+
+The one thing caching can't fix is the Workers free plan: 100,000 Worker requests a
+day and 10 ms of CPU per request. Static files don't count, but every page view and
+API call does, and drawing a preview image takes more than 10 ms the first time.
+If the counter starts climbing, the $5/month Workers Paid plan raises that to 10
+million requests and 30 seconds of CPU. Cheaper than a Big Mac in Switzerland.
 
 `pnpm data` refreshes the country numbers (Big Mac, World Bank).
 

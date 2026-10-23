@@ -12,10 +12,15 @@ export async function asset(event: Pick<RequestEvent, 'url' | 'platform' | 'fetc
 	return res.ok ? res : undefined;
 }
 
+/** A city from the static cache only (cheap: no upstream calls, ever). */
+export async function cachedCity(event: Pick<RequestEvent, 'url' | 'platform' | 'fetch'>, id: string): Promise<City | undefined> {
+	if (!/^[RWN]\d{1,12}$/.test(id)) return undefined;
+	const res = await asset(event, `/cities/${id}.json`).catch(() => undefined);
+	return res ? ((await res.json()) as City) : undefined;
+}
+
 /** A city from the static cache if we have it, otherwise looked up live. */
 export async function loadCity(event: Pick<RequestEvent, 'url' | 'platform' | 'fetch'>, id: string): Promise<City> {
 	if (!/^[RWN]\d{1,12}$/.test(id)) throw new Error('Bad id');
-	const cached = await asset(event, `/cities/${id}.json`).catch(() => undefined);
-	if (cached) return (await cached.json()) as City;
-	return getCity(id, null, event.platform);
+	return (await cachedCity(event, id)) ?? getCity(id, null, event.platform);
 }

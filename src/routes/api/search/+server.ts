@@ -21,7 +21,8 @@ interface PhotonFeature {
 const RANK: Record<string, number> = { city: 0, municipality: 1, borough: 2, town: 3, suburb: 4, village: 6 };
 
 export const GET: RequestHandler = async ({ url, platform }) => {
-	const q = url.searchParams.get('q')?.trim();
+	// Normalised so "  Bogotá " and "bogotá" share one cache entry.
+	const q = url.searchParams.get('q')?.trim().replace(/\s+/g, ' ').toLowerCase();
 	if (!q || q.length < 2) return json([]);
 	if (q.length > 80) error(400, 'Query too long');
 
@@ -30,7 +31,9 @@ export const GET: RequestHandler = async ({ url, platform }) => {
 	photon.searchParams.set('limit', '12');
 	for (const layer of ['city', 'district', 'county', 'locality']) photon.searchParams.append('layer', layer);
 
-	const data = await cachedJson<{ features: PhotonFeature[] }>(photon.toString(), platform, 60 * 60 * 24 * 30);
+	const data = await cachedJson<{ features: PhotonFeature[] }>(photon.toString(), platform, 60 * 60 * 24 * 30).catch(() => null);
+	// Upstream busy or down: the built-in city list still works, so just say "nothing extra".
+	if (!data) return json([], { status: 503, headers: { 'Cache-Control': 'no-store', 'Retry-After': '30' } });
 
 	const seen = new Set<string>();
 	const results: Suggestion[] = data.features
@@ -52,5 +55,5 @@ export const GET: RequestHandler = async ({ url, platform }) => {
 			kind: p.osm_value
 		}));
 
-	return json(results, { headers: cacheHeaders() });
+	return json(results, { headers: cacheHeaders(60 * 60 * 24 * 7) });
 };

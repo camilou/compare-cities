@@ -10,7 +10,7 @@ import polygonClipping, { type MultiPolygon as PCMulti, type Polygon as PCPoly }
 import type { Area } from './types';
 
 export const TILEJSON = 'https://tiles.openfreemap.org/planet';
-export type TileLoader = (z: number, x: number, y: number) => Promise<Uint8Array>;
+export type TileLoader = (z: number, x: number, y: number, signal?: AbortSignal) => Promise<Uint8Array>;
 
 const lon2x = (lon: number, z: number) => Math.floor(((lon + 180) / 360) * 2 ** z);
 const lat2y = (lat: number, z: number) => {
@@ -26,15 +26,25 @@ function bounds(g: Area) {
 }
 
 /** Ocean polygons covering a bounding box, from the most detailed zoom that stays under maxTiles. */
-async function oceanAround(g: Area, tile: TileLoader, maxTiles: number, maxZoom: number): Promise<PCMulti> {
+async function oceanAround(
+	g: Area,
+	tile: TileLoader,
+	maxTiles: number,
+	maxZoom: number,
+	signal?: AbortSignal
+): Promise<PCMulti | undefined> {
 	const { w, s, e, n } = bounds(g);
+	// Outlines spanning the antimeridian or a continent aren't cities we can clip sensibly.
+	if (e - w > 10 || n - s > 10) return undefined;
+	const count = (z: number) => (lon2x(e, z) - lon2x(w, z) + 1) * (lat2y(s, z) - lat2y(n, z) + 1);
 	let z = maxZoom;
-	while (z > 8 && (lon2x(e, z) - lon2x(w, z) + 1) * (lat2y(s, z) - lat2y(n, z) + 1) > maxTiles) z--;
+	while (z > 8 && count(z) > maxTiles) z--;
+	if (count(z) > maxTiles) return undefined; // the cap is a hard limit, not a suggestion
 	const jobs: Promise<PCMulti>[] = [];
 	for (let x = lon2x(w, z); x <= lon2x(e, z); x++) {
 		for (let y = lat2y(n, z); y <= lat2y(s, z); y++) {
 			jobs.push(
-				tile(z, x, y).then((buf) => {
+				tile(z, x, y, signal).then((buf) => {
 					const out: PCMulti = [];
 					if (!buf.length) return out;
 					const layer = new VectorTile(new PbfReader(buf)).layers.water;
@@ -57,10 +67,11 @@ async function oceanAround(g: Area, tile: TileLoader, maxTiles: number, maxZoom:
 export async function clipToLand(
 	g: Area,
 	tile: TileLoader,
-	{ maxTiles = 64, maxZoom = 12 } = {}
+	{ maxTiles = 64, maxZoom = 12, signal }: { maxTiles?: number; maxZoom?: number; signal?: AbortSignal } = {}
 ): Promise<{ geometry: Area; touched: boolean }> {
-	const ocean = await oceanAround(g, tile, maxTiles, maxZoom);
-	if (!ocean.length) return { geometry: g, touched: false };
+	const ocean = await oceanAround(g, tile, maxTiles, maxZoom, signal);
+	if (!ocean?.length) return { geometry: g, touched: false };
+	signal?.throwIfAborted();
 	const city = (g.type === 'Polygon' ? [g.coordinates] : g.coordinates) as PCMulti;
 	const land = polygonClipping.difference(city, polygonClipping.union(ocean));
 	if (!land.length) return { geometry: g, touched: false }; // never return an empty city
@@ -81,9 +92,9 @@ export function tileUrl(init?: RequestInit) {
 }
 
 /** Plain HTTP tile loader: the browser's own cache keeps repeat visits free. */
-export const fetchTile: TileLoader = async (z, x, y) => {
+export const fetchTile: TileLoader = async (z, x, y, signal) => {
 	const url = (await tileUrl()).replace('{z}', String(z)).replace('{x}', String(x)).replace('{y}', String(y));
-	const res = await fetch(url);
+	const res = await fetch(url, { signal });
 	if (res.status === 204 || res.status === 404) return new Uint8Array();
 	if (!res.ok) throw new Error(`tile ${z}/${x}/${y}: ${res.status}`);
 	return new Uint8Array(await res.arrayBuffer());
