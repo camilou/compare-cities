@@ -47,7 +47,8 @@
 			<path d="M19.6 10c5.4 0 9.6 4 9.6 9.2s-4 10-9.8 10-9.6-4.3-9.6-9.4S14.2 10 19.6 10z" />
 			<path d="M19.4 15.3c2.5 0 4.4 1.8 4.4 4.1s-1.9 4.5-4.5 4.5-4.4-1.9-4.4-4.2 2-4.4 4.5-4.4z" />
 		</g>
-		<path class="b" d="M23 18.5l5.5-2.8 4.7 2.4 1.5 5.2-2.6 4.6-5.4 1.4-4.6-2.8-.7-4.6z" />
+		<!-- The second city sits on the map with a paper-coloured ring, not a muddy blend. -->
+		<path class="b solid" d="M23 18.5l5.5-2.8 4.7 2.4 1.5 5.2-2.6 4.6-5.4 1.4-4.6-2.8-.7-4.6z" />
 	{/if}
 </svg>
 
@@ -83,6 +84,18 @@
 	}
 	.thin {
 		stroke-width: 2.4;
+	}
+	.b.solid {
+		mix-blend-mode: normal;
+		opacity: 1;
+		stroke: var(--color-paper);
+		stroke-width: 2.5;
+		stroke-linejoin: round;
+		paint-order: stroke;
+	}
+	:global([data-theme='dark']) .b.solid {
+		mix-blend-mode: normal;
+		opacity: 1;
 	}
 	.bar rect:first-child {
 		fill: var(--color-card);
