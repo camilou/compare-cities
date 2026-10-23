@@ -14,6 +14,13 @@ const store = {
 		} catch {
 			/* private mode: preference just won't persist */
 		}
+	},
+	remove: (k: string) => {
+		try {
+			localStorage.removeItem(k);
+		} catch {
+			/* ignore */
+		}
 	}
 };
 
@@ -29,9 +36,13 @@ class Theme {
 		});
 	}
 
+	/** Flip the theme. Landing back on the device's own setting forgets the override,
+	 *  so the site follows the system again (e.g. automatic dark mode at sunset). */
 	toggle() {
 		const next = this.current === 'dark' ? 'light' : 'dark';
-		store.set('theme', next);
+		const system = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+		if (next === system) store.remove('theme');
+		else store.set('theme', next);
 		this.apply(next);
 	}
 
