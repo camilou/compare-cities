@@ -1,0 +1,41 @@
+{
+	"name": "trusize",
+	"private": true,
+	"version": "0.0.1",
+	"type": "module",
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "wrangler dev .svelte-kit/cloudflare/_worker.js --port 4173",
+		"prepare": "svelte-kit sync || echo ''",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"gen": "wrangler types",
+		"data": "node scripts/fetch-data.mjs",
+		"deploy": "npm run build && wrangler deploy"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^5.20261022.1",
+		"@sveltejs/adapter-cloudflare": "^7.2.9",
+		"@sveltejs/kit": "^2.70.3",
+		"@sveltejs/vite-plugin-svelte": "^7.2.0",
+		"@tailwindcss/vite": "^4.3.0",
+		"@types/geojson": "^7946.0.16",
+		"d3-contour": "^4.0.2",
+		"svelte": "^5.57.1",
+		"svelte-check": "^4.6.0",
+		"tailwindcss": "^4.3.0",
+		"typescript": "^6.0.3",
+		"vite": "^8.3.0",
+		"wrangler": "^4.97.0"
+	},
+	"engines": {
+		"node": ">=22"
+	},
+	"dependencies": {
+		"@fontsource-variable/bricolage-grotesque": "^5.3.0",
+		"@resvg/resvg-wasm": "^2.6.2",
+		"@turf/area": "^7.4.0",
+		"maplibre-gl": "^6.15.0"
+	}
+}
