@@ -186,8 +186,8 @@
 <div class="page top">
 	<header class="masthead">
 		<a href="/" class="brand" aria-label="Compare cities, home">
-			<Logo size={38} />
-			<span class="wordmark">Compare<br />cities</span>
+			<Logo size={44} />
+			<span class="wordmark"><span>compare</span> <span>cities</span></span>
 		</a>
 		<p class="tagline">Every city at its true size and shape.</p>
 		<div class="actions">
@@ -440,12 +440,12 @@
 		gap: 0.6rem;
 	}
 	.wordmark {
-		font-size: 1.15rem;
-		line-height: 0.95;
-		font-weight: 800;
-		font-stretch: 78%;
-		letter-spacing: -0.01em;
-		text-transform: lowercase;
+		font-family: var(--font-brand);
+		font-size: 1.6rem;
+		font-weight: 700;
+		line-height: 1;
+		letter-spacing: -0.02em;
+		white-space: nowrap;
 	}
 	.tagline {
 		color: var(--color-muted);
@@ -495,9 +495,18 @@
 		stroke-linecap: round;
 		stroke-linejoin: round;
 	}
-	@media (max-width: 520px) {
+	@media (max-width: 900px) {
 		.tagline {
 			display: none;
+		}
+	}
+	@media (max-width: 520px) {
+		.wordmark {
+			font-size: 1.15rem;
+			line-height: 0.95;
+		}
+		.wordmark span {
+			display: block;
 		}
 	}
 	.stage {

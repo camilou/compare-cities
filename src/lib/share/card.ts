@@ -37,6 +37,7 @@ const C = {
 	b: '#e5620a'
 };
 export const FONT = 'Bricolage Grotesque';
+export const BRAND_FONT = 'Unbounded';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -136,14 +137,17 @@ function headline(input: CardInput, x: number, y: number, size: number, maxW: nu
 	};
 }
 
+/** Contour mark + one-line Unbounded wordmark. */
 function logo(x: number, y: number, size: number) {
 	const sc = size / 40;
 	return (
 		`<g transform="translate(${x} ${y}) scale(${sc})">` +
-		`<path fill="${C.a}" d="M5 11.5 13 5l7.5 3.2L27 6l4.5 6.5-1.8 7.6 2.6 6.4L25 34l-7.8-2.6L9 33.5 4.5 26l2.4-6.3z"/>` +
-		`<path fill="${C.b}" fill-opacity=".85" d="M15.5 16.2 22 12.5l5.4 2.6 6.3-.9 2.8 6.1-2.4 5.3 1.4 6-6.3 3.7-5.4-2.4-6.2 1.6-3-6.3 2.1-5.2z"/></g>` +
-		`<text x="${x + size + 12}" y="${y + size * 0.47}" font-size="${size * 0.48}" font-weight="800" fill="${C.ink}">compare</text>` +
-		`<text x="${x + size + 12}" y="${y + size * 0.95}" font-size="${size * 0.48}" font-weight="800" fill="${C.ink}">cities</text>`
+		`<g fill="none" stroke="${C.a}" stroke-width="2.6">` +
+		`<path d="M20 4.5c8.5 0 15 6 15 14.3S28.6 35 19.5 35 5 28.3 5 20 11.5 4.5 20 4.5z"/>` +
+		`<path d="M19.6 10c5.4 0 9.6 4 9.6 9.2s-4 10-9.8 10-9.6-4.3-9.6-9.4S14.2 10 19.6 10z"/>` +
+		`<path d="M19.4 15.3c2.5 0 4.4 1.8 4.4 4.1s-1.9 4.5-4.5 4.5-4.4-1.9-4.4-4.2 2-4.4 4.5-4.4z"/></g>` +
+		`<path fill="${C.b}" stroke="${C.paper}" stroke-width="2.5" stroke-linejoin="round" paint-order="stroke" d="M23 18.5l5.5-2.8 4.7 2.4 1.5 5.2-2.6 4.6-5.4 1.4-4.6-2.8-.7-4.6z"/></g>` +
+		`<text x="${x + size + 12}" y="${y + size * 0.68}" font-family="${BRAND_FONT}" font-size="${size * 0.5}" font-weight="700" letter-spacing="${-size * 0.01}" fill="${C.ink}">compare cities</text>`
 	);
 }
 

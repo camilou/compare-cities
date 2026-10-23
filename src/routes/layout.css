@@ -1,11 +1,13 @@
 @import 'tailwindcss';
 @import '@fontsource-variable/bricolage-grotesque/standard.css';
+@import '@fontsource-variable/unbounded';
 @import 'maplibre-gl/dist/maplibre-gl.css';
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 @theme {
 	--font-sans: 'Bricolage Grotesque Variable', ui-sans-serif, system-ui, sans-serif;
+	--font-brand: 'Unbounded Variable', 'Bricolage Grotesque Variable', sans-serif;
 }
 
 /*

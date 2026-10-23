@@ -24,7 +24,7 @@ export const GET: RequestHandler = async (event) => {
 	const svg = buildCardSvg(cardInput(side(a), side(b), event.url.host), 'landscape');
 
 	const fonts = await Promise.all(
-		['/fonts/bricolage-500.ttf', '/fonts/bricolage-800.ttf'].map(async (p) => {
+		['/fonts/bricolage-500.ttf', '/fonts/bricolage-800.ttf', '/fonts/unbounded-700.ttf'].map(async (p) => {
 			const res = await asset(event, p);
 			if (!res) error(500, 'Font missing');
 			return new Uint8Array(await res.arrayBuffer());

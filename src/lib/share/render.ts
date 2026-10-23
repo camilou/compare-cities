@@ -1,6 +1,6 @@
 // Browser side: turn the share-card SVG into a PNG (fonts embedded so the image
 // looks identical to the server-rendered link preview).
-import { buildCardSvg, CARD_SIZE, FONT, type CardFormat, type CardInput } from './card';
+import { buildCardSvg, BRAND_FONT, CARD_SIZE, FONT, type CardFormat, type CardInput } from './card';
 
 let fontCss: Promise<string> | undefined;
 
@@ -15,10 +15,13 @@ async function dataUrl(path: string) {
 }
 
 function fonts() {
-	return (fontCss ??= Promise.all([dataUrl('/fonts/bricolage-500.ttf'), dataUrl('/fonts/bricolage-800.ttf')]).then(
-		([regular, bold]) =>
+	return (fontCss ??= Promise.all(
+		['/fonts/bricolage-500.ttf', '/fonts/bricolage-800.ttf', '/fonts/unbounded-700.ttf'].map(dataUrl)
+	).then(
+		([regular, bold, brand]) =>
 			`@font-face{font-family:'${FONT}';font-weight:500;src:url(${regular}) format('truetype')}` +
-			`@font-face{font-family:'${FONT}';font-weight:800;src:url(${bold}) format('truetype')}`
+			`@font-face{font-family:'${FONT}';font-weight:800;src:url(${bold}) format('truetype')}` +
+			`@font-face{font-family:'${BRAND_FONT}';font-weight:700;src:url(${brand}) format('truetype')}`
 	));
 }
 
