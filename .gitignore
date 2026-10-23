@@ -21,3 +21,6 @@ Thumbs.db
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Map tiles cached by scripts/lib/land.ts
+scripts/.tilecache

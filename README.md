@@ -57,7 +57,7 @@ is the whole point.
 
 | What | From | Honesty level |
 | --- | --- | --- |
-| City outlines | OpenStreetMap via Nominatim | Official boundaries. Some cities are weird (Tokyo includes islands, Bogotá's district includes a whole páramo) |
+| City outlines | OpenStreetMap via Nominatim | Official boundaries, with the sea cut off for cached cities (see below). Some are still weird: Bogotá's district includes a whole páramo |
 | Search | Photon + our own cache | Big cities first, accents optional |
 | Population, founding, mayor, sister cities | Wikidata | Pretty good. Some cities were founded "3rd century BC", which is very precise |
 | Photo + blurb | Wikipedia | Good |
@@ -66,6 +66,16 @@ is the whole point.
 | Big Mac price | The Economist's Big Mac index | Delicious |
 | GDP, life expectancy | World Bank | National, not per city |
 | Cars, salaries | Me, with a spreadsheet | **Rough estimates.** Don't quote these at a dinner party |
+
+## No swimming
+
+Official city boundaries love the sea. San Francisco's runs out to the county line in
+the Pacific, so it "measured" 601 km² when the actual city is 121. New York was
+dragging 445 km² of harbour around. So every cached city gets clipped to land:
+`scripts/lib/land.ts` grabs the `ocean` polygons from the same OpenFreeMap tiles the
+map uses and subtracts them. Bays and harbours go, rivers and lakes stay (sorry, the
+Seine is still part of Paris). San Francisco is now 122 km², New York 772 km², both
+within a rounding error of the official land area.
 
 ## The city cache (a.k.a. the robots)
 
@@ -78,6 +88,7 @@ transit and parks. Cached cities load in one request.
 pnpm dev   # the builder uses the local API, so keep this running
 node --experimental-strip-types scripts/build-city-cache.ts 1000 http://localhost:5173
 node --experimental-strip-types scripts/enrich-city-cache.ts climate,transit,green
+node --experimental-strip-types scripts/clip-to-land.ts   # only needed for files built before clipping existed
 ```
 
 Both are resumable and polite: one request at a time, a 20-second breather between

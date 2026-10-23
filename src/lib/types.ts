@@ -37,5 +37,6 @@ export interface City {
 	// Present in the static per-city cache (static/cities/<id>.json); fetched live otherwise.
 	climate?: Climate;
 	transit?: TransitStats | null; // null: too large to query
+	land?: boolean; // outline clipped to land (sea removed) by scripts/clip-to-land.ts
 	green?: GreenStats | null; // null: too large to measure (huge administrative areas)
 }

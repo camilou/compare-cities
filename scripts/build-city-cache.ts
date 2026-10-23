@@ -8,6 +8,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import type { City } from '../src/lib/types.ts';
 import { areaKm2, mainland } from '../src/lib/geo.ts';
+import { clipToLand } from './lib/land.ts';
 
 const COUNT = Number(process.argv[2] ?? 1000);
 const BASE = process.argv[3] ?? 'http://localhost:5173';
@@ -158,6 +159,8 @@ for (const c of list) {
 			}
 			if (!res?.ok) throw new Error(`api ${res?.status ?? 'unreachable'}`);
 			city = shrink((await res.json()) as City);
+			// Coastal boundaries run out to sea; keep the land only (see scripts/lib/land.ts).
+			city = { ...city, geometry: (await clipToLand(city.geometry)).geometry, land: true };
 			// Regions and metro areas ("Dhaka Division", "Greater Mexico City") aren't the city people mean.
 			const km2 = areaKm2(mainland(city.geometry, city.center));
 			if (REGION.test(city.name) && km2 > 2000 && !OVERRIDES[c.q]) throw new Error(`looks like a region (${Math.round(km2)} km²)`);
