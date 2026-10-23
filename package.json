@@ -11,8 +11,7 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"gen": "wrangler types",
-		"data": "node scripts/fetch-data.mjs",
-		"deploy": "pnpm build && wrangler deploy"
+		"data": "node scripts/fetch-data.mjs"
 	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "^5.20261022.1",

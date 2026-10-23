@@ -37,9 +37,9 @@ pnpm build && pnpm preview        # production build in the local Workers runtim
 git push             # Cloudflare Workers Builds deploys the `compare-cities` Worker from main
 ```
 
-Deploys happen on push: the `compare-cities` Worker is connected to this repo. (In an
-emergency, `pnpm run deploy` ships the same Worker by hand. Plain `pnpm deploy` is a
-pnpm built-in and does something else entirely.)
+Deploys happen on push to `main`, and only on push: the `compare-cities` Worker is
+connected to this repo through Cloudflare Workers Builds. There is deliberately no
+deploy script, because the last manual deploy invented a whole new Worker.
 
 Node 22 and pnpm. Yes, SvelteKit 3 wants Node 22.17 and I have 22.16. We're on
 SvelteKit 2. We don't talk about it.
