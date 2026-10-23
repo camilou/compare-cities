@@ -12,7 +12,7 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"gen": "wrangler types",
 		"data": "node scripts/fetch-data.mjs",
-		"deploy": "npm run build && wrangler deploy"
+		"deploy": "pnpm build && wrangler deploy"
 	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "^5.20261022.1",
@@ -37,5 +37,6 @@
 		"@resvg/resvg-wasm": "^2.6.2",
 		"@turf/area": "^7.4.0",
 		"maplibre-gl": "^6.15.0"
-	}
+	},
+	"packageManager": "pnpm@11.25.0"
 }

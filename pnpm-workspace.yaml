@@ -1,0 +1,8 @@
+# Only these may run install scripts (they download platform binaries).
+allowBuilds:
+  esbuild: true
+  workerd: true
+
+# Type definitions only, published the day we switched to pnpm.
+minimumReleaseAgeExclude:
+  - '@cloudflare/workers-types@5.20261022.1'

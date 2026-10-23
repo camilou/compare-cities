@@ -3,7 +3,7 @@
 **Live:** https://compare-cities.hacer.workers.dev
 **Code:** https://github.com/camilou/compare-cities
 
-I always wanted to know how big Bogotá really is compared to Paris. Not "according to
+I always wanted to know how big Medellín really is compared to Singapore. Not "according to
 Google Maps, where Greenland is the size of Africa" big, but *really* big. So I built
 this: pick a city, pick another one, and the second one gets dropped on top of the
 first at its true size and shape. Then you scroll down and discover that Medellín has
@@ -31,14 +31,14 @@ nobody asked for.
 ## Run it
 
 ```sh
-npm install
-npm run dev          # http://localhost:5173
-npm run build && npm run preview   # production build in the local Workers runtime
-npm run deploy       # ship it to Cloudflare (npx wrangler login first)
+pnpm install
+pnpm dev             # http://localhost:5173
+pnpm build && pnpm preview        # production build in the local Workers runtime
+pnpm run deploy      # ship it to Cloudflare (pnpm exec wrangler login first; plain `pnpm deploy` is a pnpm built-in)
 ```
 
-Node 22. Yes, SvelteKit 3 wants 22.17 and I have 22.16. We're on SvelteKit 2.
-We don't talk about it.
+Node 22 and pnpm. Yes, SvelteKit 3 wants Node 22.17 and I have 22.16. We're on
+SvelteKit 2. We don't talk about it.
 
 ## How the overlay stays honest
 
@@ -75,17 +75,30 @@ minute. So two very patient scripts pre-visit the ~1,000 most famous cities and 
 transit and parks. Cached cities load in one request.
 
 ```sh
-npm run dev   # the builder uses the local API, so keep this running
+pnpm dev   # the builder uses the local API, so keep this running
 node --experimental-strip-types scripts/build-city-cache.ts 1000 http://localhost:5173
 node --experimental-strip-types scripts/enrich-city-cache.ts climate,transit,green
 ```
 
-Both are resumable and polite: one request at a time, and the parks robot stops at
-~1 GB a day so OpenStreetMap doesn't send me strongly worded emails. Cities are
+Both are resumable and polite: one request at a time, a 20-second breather between
+OpenStreetMap queries, and the parks robot stops at ~1 GB a day. (Ask me how I know
+Overpass blocks you if you're not polite. Actually, don't.)
+
+Live lookups are cached too: finished cities and transit for 30 days at the edge
+(plus Workers KV if you bind one, see below), and the heavy park measurement for
+uncached cities only runs when someone clicks "Measure parks".
+
+Optional, for a global cache that survives edge evictions:
+
+```sh
+pnpm exec wrangler kv namespace create CITY_CACHE
+# then add the printed id to wrangler.jsonc:
+# "kv_namespaces": [{ "binding": "CITY_CACHE", "id": "<id>" }]
+``` Cities are
 ranked by how many Wikipedias have an article about them, which is why Lyon makes
 the cut and "Dhaka Division" (a 20,000 km² region pretending to be a city) does not.
 
-`npm run data` refreshes the country numbers (Big Mac, World Bank).
+`pnpm data` refreshes the country numbers (Big Mac, World Bank).
 
 ## Stack
 
