@@ -101,7 +101,8 @@ const passes: Pass[] = [
 
 async function loop(p: Pass) {
 	let idle = 0;
-	while (idle < 3) {
+	// Keep checking for an hour after the last new file: the city builder may still be running.
+	while (idle < 60) {
 		let did = 0;
 		for (const { file } of files()) {
 			const c = JSON.parse(readFileSync(file, 'utf8')) as City;
