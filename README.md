@@ -82,7 +82,9 @@ node --experimental-strip-types scripts/enrich-city-cache.ts climate,transit,gre
 
 Both are resumable and polite: one request at a time, a 20-second breather between
 OpenStreetMap queries, and the parks robot stops at ~1 GB a day. (Ask me how I know
-Overpass blocks you if you're not polite. Actually, don't.)
+Overpass blocks you if you're not polite. Actually, don't.) Cities are ranked by how
+many Wikipedias have an article about them, which is why Lyon makes the cut and
+"Dhaka Division" (a 20,000 km² region pretending to be a city) does not.
 
 Live lookups are cached too: finished cities and transit for 30 days at the edge
 (plus Workers KV if you bind one, see below), and the heavy park measurement for
@@ -94,9 +96,7 @@ Optional, for a global cache that survives edge evictions:
 pnpm exec wrangler kv namespace create CITY_CACHE
 # then add the printed id to wrangler.jsonc:
 # "kv_namespaces": [{ "binding": "CITY_CACHE", "id": "<id>" }]
-``` Cities are
-ranked by how many Wikipedias have an article about them, which is why Lyon makes
-the cut and "Dhaka Division" (a 20,000 km² region pretending to be a city) does not.
+```
 
 `pnpm data` refreshes the country numbers (Big Mac, World Bank).
 
