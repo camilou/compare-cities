@@ -1,5 +1,5 @@
 import { loadCity } from '$lib/server/assets';
-import { areaKm2, mainland } from '$lib/geo';
+import { areaKm2, mainland, simplifyTo } from '$lib/geo';
 import { cardInput, headlineText } from '$lib/share/card';
 import cityIndex from '$lib/data/city-index.json';
 import type { PageServerLoad } from './$types';
@@ -59,7 +59,7 @@ export const load: PageServerLoad = async (event) => {
 
 	const side = (c: (typeof pair)[number]) => {
 		const shape = mainland(c.geometry, c.center);
-		return { name: c.name, shape, center: c.center, areaKm2: areaKm2(shape), population: c.facts.population?.value };
+		return { name: c.name, shape: simplifyTo(shape, 1200), center: c.center, areaKm2: areaKm2(shape), population: c.facts.population?.value };
 	};
 	const card = cardInput(side(pair[0]), side(pair[1]), event.url.host);
 	return {

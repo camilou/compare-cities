@@ -8,7 +8,10 @@
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import ShareSheet from '$lib/components/ShareSheet.svelte';
 	import { cardInput } from '$lib/share/card';
-	import { areaKm2, mainland } from '$lib/geo';
+	import { areaKm2, mainland, simplifyTo } from '$lib/geo';
+
+	// Every point of the overlay is re-projected on each drag frame: keep it light.
+	const DRAW_VERTICES = 1200;
 	import MonthlyChart from '$lib/components/MonthlyChart.svelte';
 	import { CLIMATE_SOURCE, MONTHS } from '$lib/climate';
 	import { fetchCity, cityClimate, cityTransit, cityGreen, knownGreen } from '$lib/citystats';
@@ -78,7 +81,7 @@
 			const city: City = await fetchCity(pick);
 			if (token !== tokens[slot]) return;
 			const shape = mainland(city.geometry, city.center);
-			const side: Side = { city, shape, areaKm2: areaKm2(shape) };
+			const side: Side = { city, shape, display: simplifyTo(shape, DRAW_VERTICES), areaKm2: areaKm2(shape) };
 			sides[slot] = side;
 			syncUrl();
 			delete pending[city.id];
@@ -149,7 +152,7 @@
 		if (!A || !B) return undefined;
 		const side = (s: Side) => ({
 			name: s.city.name,
-			shape: s.shape,
+			shape: s.display,
 			center: s.city.center,
 			areaKm2: s.areaKm2,
 			population: s.city.facts.population?.value
@@ -158,7 +161,7 @@
 	});
 
 	const shapeOf = (s?: Side) =>
-		s && { key: s.city.id, name: s.city.name, shape: s.shape, center: s.city.center, areaKm2: s.areaKm2 };
+		s && { key: s.city.id, name: s.city.name, shape: s.display, center: s.city.center, areaKm2: s.areaKm2 };
 
 	const title = $derived(A && B ? `${A.city.name} vs ${B.city.name}: true size compared` : data.meta.title);
 </script>

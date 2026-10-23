@@ -7,7 +7,7 @@
 // Resumable: cities already in static/cities/ are skipped.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import type { City } from '../src/lib/types.ts';
-import { areaKm2, mainland } from '../src/lib/geo.ts';
+import { areaKm2, mainland, simplifyTo } from '../src/lib/geo.ts';
 import { clipToLand } from './lib/land.ts';
 
 const COUNT = Number(process.argv[2] ?? 1000);
@@ -50,6 +50,8 @@ const TYPES = [
 const OVERRIDES: Record<string, string> = {
 	Q2841: 'R7426387' // Bogotá → "Bogotá ciudad", not the whole Distrito Capital
 };
+
+const STORE_VERTICES = 3000; // a few metres of accuracy, and small files
 
 const REGION = /\b(Division|Province|Region|Prefecture|Metropolitan|Greater|Governorate|Oblast|Department)\b/i;
 
@@ -160,7 +162,7 @@ for (const c of list) {
 			if (!res?.ok) throw new Error(`api ${res?.status ?? 'unreachable'}`);
 			city = shrink((await res.json()) as City);
 			// Coastal boundaries run out to sea; keep the land only (see scripts/lib/land.ts).
-			city = { ...city, geometry: (await clipToLand(city.geometry)).geometry, land: true };
+			city = { ...city, geometry: simplifyTo((await clipToLand(city.geometry)).geometry, STORE_VERTICES), land: true };
 			// Regions and metro areas ("Dhaka Division", "Greater Mexico City") aren't the city people mean.
 			const km2 = areaKm2(mainland(city.geometry, city.center));
 			if (REGION.test(city.name) && km2 > 2000 && !OVERRIDES[c.q]) throw new Error(`looks like a region (${Math.round(km2)} km²)`);

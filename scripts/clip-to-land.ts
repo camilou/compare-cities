@@ -4,7 +4,7 @@
 //   node --experimental-strip-types scripts/clip-to-land.ts [R111968 R175905 ...]
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { clipToLand } from './lib/land.ts';
-import { areaKm2, mainland } from '../src/lib/geo.ts';
+import { areaKm2, mainland, simplifyTo } from '../src/lib/geo.ts';
 import type { City } from '../src/lib/types.ts';
 
 const DIR = new URL('../static/cities/', import.meta.url);
@@ -18,7 +18,9 @@ for (const f of readdirSync(DIR).filter((f) => f.endsWith('.json'))) {
 	if (city.land && !only.size) continue;
 	try {
 		const before = areaKm2(mainland(city.geometry, city.center));
-		const { geometry, touched } = await clipToLand(city.geometry);
+		const clip = await clipToLand(city.geometry);
+		const geometry = simplifyTo(clip.geometry, 3000); // tile coastlines are dense; cap stored points
+		const touched = clip.touched;
 		const after = areaKm2(mainland(geometry, city.center));
 		// Re-read and patch, so parallel robots writing other fields aren't overwritten.
 		const latest = JSON.parse(readFileSync(file, 'utf8')) as City & { land?: boolean };

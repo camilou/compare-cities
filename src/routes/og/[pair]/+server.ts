@@ -2,7 +2,7 @@ import { error } from '@sveltejs/kit';
 import { asset, loadCity } from '$lib/server/assets';
 import { svgToPng } from '$lib/server/resvg';
 import { buildCardSvg, cardInput, CARD_SIZE } from '$lib/share/card';
-import { areaKm2, mainland } from '$lib/geo';
+import { areaKm2, mainland, simplifyTo } from '$lib/geo';
 import type { RequestHandler } from './$types';
 
 // Link-preview image for a pair of cities: /og/R7426387-R7444.png
@@ -19,7 +19,7 @@ export const GET: RequestHandler = async (event) => {
 	const [a, b] = await Promise.all([loadCity(event, m[1]), loadCity(event, m[2])]);
 	const side = (c: typeof a) => {
 		const shape = mainland(c.geometry, c.center);
-		return { name: c.name, shape, center: c.center, areaKm2: areaKm2(shape), population: c.facts.population?.value };
+		return { name: c.name, shape: simplifyTo(shape, 1200), center: c.center, areaKm2: areaKm2(shape), population: c.facts.population?.value };
 	};
 	const svg = buildCardSvg(cardInput(side(a), side(b), event.url.host), 'landscape');
 

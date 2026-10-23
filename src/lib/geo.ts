@@ -99,3 +99,61 @@ export function spanKm(g: Area, center: LngLat) {
 	});
 	return (max * 2) / 1000;
 }
+
+// ---- Simplification ---------------------------------------------------------------
+
+const vertexCount = (g: Area) => (g.type === 'Polygon' ? [g.coordinates] : g.coordinates).reduce((n, p) => n + p.reduce((m, r) => m + r.length, 0), 0);
+
+/** Douglas–Peucker on one ring, in a locally scaled lon/lat plane. */
+function simplifyRing(ring: Position[], tol: number, k: number): Position[] {
+	if (ring.length <= 4) return ring;
+	const keep = new Uint8Array(ring.length);
+	keep[0] = keep[ring.length - 1] = 1;
+	const stack: [number, number][] = [[0, ring.length - 1]];
+	const tol2 = tol * tol;
+	while (stack.length) {
+		const [a, b] = stack.pop()!;
+		const ax = ring[a][0] * k, ay = ring[a][1];
+		const dx = ring[b][0] * k - ax, dy = ring[b][1] - ay;
+		const len2 = dx * dx + dy * dy || 1e-18;
+		let worst = 0, idx = -1;
+		for (let i = a + 1; i < b; i++) {
+			const px = ring[i][0] * k - ax, py = ring[i][1] - ay;
+			const t = Math.max(0, Math.min(1, (px * dx + py * dy) / len2));
+			const ex = px - t * dx, ey = py - t * dy;
+			const d2 = ex * ex + ey * ey;
+			if (d2 > worst) (worst = d2), (idx = i);
+		}
+		if (idx > 0 && worst > tol2) {
+			keep[idx] = 1;
+			stack.push([a, idx], [idx, b]);
+		}
+	}
+	const out = ring.filter((_, i) => keep[i]);
+	return out.length >= 4 ? out : ring;
+}
+
+/**
+ * A lighter copy of an outline for drawing: tiny islets dropped and edges simplified
+ * until it fits `maxVertices`. Measure areas on the original, draw this one.
+ */
+export function simplifyTo(g: Area, maxVertices: number): Area {
+	const polys = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
+	const sizes = polys.map((p) => areaKm2({ type: 'Polygon', coordinates: p }));
+	const total = sizes.reduce((a, b) => a + b, 0);
+	// Islets under 0.1% of the city (and under 0.5 km²) are invisible at city zoom anyway.
+	const kept = polys.filter((_, i) => sizes[i] >= Math.min(total * 0.001, 0.5));
+	let out: Area = kept.length === 1 ? { type: 'Polygon', coordinates: kept[0] } : { type: 'MultiPolygon', coordinates: kept };
+	if (vertexCount(out) <= maxVertices) return out;
+
+	const lat = kept[0][0][0][1];
+	const k = Math.cos((lat * Math.PI) / 180);
+	let tol = 0.00002; // ~2 m
+	for (let i = 0; i < 20 && vertexCount(out) > maxVertices; i++, tol *= 1.6) {
+		const simplified = kept.map((p) => p.map((r) => simplifyRing(r, tol, k)));
+		out = simplified.length === 1 ? { type: 'Polygon', coordinates: simplified[0] } : { type: 'MultiPolygon', coordinates: simplified };
+	}
+	return out;
+}
+
+export { vertexCount };

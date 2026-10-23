@@ -17,7 +17,8 @@ const CAR_LENGTH_M = 4.5;
 
 export interface Side {
 	city: City;
-	shape: Area; // as drawn on the map (remote islands dropped)
+	shape: Area; // full outline (remote islands dropped): areas and parks are measured on this
+	display: Area; // lighter copy for drawing and dragging (see simplifyTo)
 	areaKm2: number;
 	weather?: Weather;
 	transit?: TransitStats;

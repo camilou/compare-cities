@@ -27,6 +27,15 @@
 	let map = $state<MLMap>();
 	let handle: Marker | undefined;
 	let anchor = $state<LngLat>([0, 0]);
+	// Pointer events can fire several times per frame; move the overlay at most once per frame.
+	let queued: LngLat | undefined;
+	function moveTo(p: LngLat) {
+		if (!queued) requestAnimationFrame(() => {
+			if (queued) anchor = queued;
+			queued = undefined;
+		});
+		queued = p;
+	}
 	let rotation = $state(0);
 	let moved = $derived(rotation !== 0 || (home && (anchor[0] !== home.center[0] || anchor[1] !== home.center[1])));
 
@@ -59,7 +68,7 @@
 			handle = marker;
 			marker.on('drag', () => {
 				const p = marker.getLngLat();
-				anchor = [p.lng, p.lat];
+				moveTo([p.lng, p.lat]);
 			});
 
 			m.on('style.load', () => {
@@ -118,7 +127,7 @@
 			m.getCanvas().style.cursor = 'grabbing';
 		});
 		m.on('mousemove', (e) => {
-			if (grab) anchor = [e.lngLat.lng + grab.dx, e.lngLat.lat + grab.dy];
+			if (grab) moveTo([e.lngLat.lng + grab.dx, e.lngLat.lat + grab.dy]);
 		});
 		m.on('mouseup', () => {
 			grab = undefined;
