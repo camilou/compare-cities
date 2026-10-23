@@ -1,7 +1,7 @@
 // Fetch helpers for free upstream APIs: identify ourselves politely (required by
 // Nominatim's usage policy) and keep responses in Cloudflare's edge cache so we
 // hit them as rarely as possible.
-export const USER_AGENT = 'CompareCities/0.2 (https://github.com/compare-cities; city size comparison experiment)';
+export const USER_AGENT = 'CompareCities/1.0 (+https://compare-cities.hacer.workers.dev; https://github.com/camilou/compare-cities)';
 
 const DAY = 60 * 60 * 24;
 

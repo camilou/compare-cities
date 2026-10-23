@@ -20,7 +20,7 @@
 	import type { City } from '$lib/types';
 
 	let { data } = $props();
-	const DEFAULTS = { a: 'R7426387', b: 'R7444' }; // Bogotá, Paris
+	const DEFAULTS = { a: 'R175905', b: 'R7444' }; // New York, Paris (the server usually picks the visitor's city)
 
 	let pickerHeight = $state(0);
 
@@ -72,8 +72,10 @@
 			syncUrl();
 			delete pending[city.id];
 			loadExtras(side);
+			return true;
 		} catch (e) {
 			if (token === tokens[slot]) errors[slot] = e instanceof Error ? e.message : String(e);
+			return false;
 		} finally {
 			if (token === tokens[slot]) loading[slot] = false;
 		}
@@ -96,8 +98,16 @@
 	}
 
 	onMount(() => {
-		load('a', { id: page.url.searchParams.get('a') ?? DEFAULTS.a });
-		load('b', { id: page.url.searchParams.get('b') ?? DEFAULTS.b });
+		// The server picks the visitor's own city for the left side when the URL doesn't say.
+		const a = data.start?.a ?? { id: page.url.searchParams.get('a') ?? DEFAULTS.a };
+		load('a', a).then((ok) => {
+			// A small town we can't outline: quietly fall back to the default pair.
+			if (!ok && 'q' in a && !sides.a && !loading.a) {
+				errors.a = undefined;
+				load('a', { id: DEFAULTS.a });
+			}
+		});
+		load('b', data.start?.b ?? { id: page.url.searchParams.get('b') ?? DEFAULTS.b });
 	});
 
 	const A = $derived(sides.a);

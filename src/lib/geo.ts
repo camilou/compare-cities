@@ -55,11 +55,21 @@ export function transplant(g: Area, from: LngLat, to: LngLat, rotationDeg = 0): 
 	});
 }
 
-/** Drop far-away islands/exclaves (e.g. Tokyo's Ogasawara islands) so the comparison stays about the city. */
+/**
+ * Drop far-away islands and exclaves so the comparison stays about the city:
+ * anything over 80 km out (Tokyo's Ogasawara islands), and specks under 1% of the
+ * main area more than 15 km out (San Francisco's Farallon Islands).
+ */
 export function mainland(g: Area, center: LngLat, maxKm = 80): Area {
 	if (g.type !== 'MultiPolygon') return g;
-	const near = g.coordinates.filter((poly) => poly[0].some((p) => polar(center, p)[0] / 1000 <= maxKm));
-	return near.length ? { type: 'MultiPolygon', coordinates: near } : g;
+	const nearest = (poly: Position[][]) => Math.min(...poly[0].map((p) => polar(center, p)[0] / 1000));
+	const size = (poly: Position[][]) => areaKm2({ type: 'Polygon', coordinates: poly });
+	const biggest = Math.max(...g.coordinates.map(size));
+	const keep = g.coordinates.filter((poly) => {
+		const d = nearest(poly);
+		return d <= maxKm && !(d > 15 && size(poly) < biggest * 0.01);
+	});
+	return keep.length ? { type: 'MultiPolygon', coordinates: keep } : g;
 }
 
 export const areaKm2 = (g: Area) => turfArea({ type: 'Feature', properties: {}, geometry: g }) / 1e6;

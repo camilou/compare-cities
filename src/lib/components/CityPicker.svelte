@@ -6,6 +6,14 @@
 	// The cached-city index loads on first focus, then search is instant.
 	const loadIndex = () =>
 		(index ??= import('$lib/data/city-index.json').then((m) => m.default as IndexRow[]).catch(() => []));
+	const regions = new Intl.DisplayNames(['en'], { type: 'region' });
+	const countryName = (cc: string) => {
+		try {
+			return regions.of(cc) ?? cc;
+		} catch {
+			return cc;
+		}
+	};
 	const fold = (t: string) =>
 		t
 			.normalize('NFD')
@@ -51,7 +59,7 @@
 		if (query.trim().length < 2) {
 			return POPULAR.filter((p) => p !== value).map((p) => {
 				const row = rows.find((r) => fold(r[1]) === fold(p) || (p === 'New York City' && r[1] === 'New York'));
-				return { key: p, title: p, sub: row?.[3], pick: row ? { id: row[0] } : { q: p } };
+				return { key: p, title: p, sub: row ? countryName(row[2]) : undefined, pick: row ? { id: row[0] } : { q: p } };
 			});
 		}
 		const seen = new Set(local.map((l) => l.id));
@@ -70,7 +78,7 @@
 			})
 			.sort((a, b) => Number(fold(b[1]).startsWith(f)) - Number(fold(a[1]).startsWith(f)) || b[4] - a[4])
 			.slice(0, 6)
-			.map((r) => ({ id: r[0], name: r[1], context: r[3], countryCode: r[2], kind: 'cached' }));
+			.map((r) => ({ id: r[0], name: r[1], context: countryName(r[2]), countryCode: r[2], kind: 'cached' }));
 	}
 
 	function search(q: string) {
