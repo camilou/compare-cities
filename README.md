@@ -136,6 +136,20 @@ million requests and 30 seconds of CPU. Cheaper than a Big Mac in Switzerland.
 
 `pnpm data` refreshes the country numbers (Big Mac, World Bank).
 
+## TODO
+
+- **Proper metro area comparisons.** Cities stop at their official limits, but
+  Medellín without Bello, Itagüí and Envigado is only half the story. Plan:
+  - Metro areas show up **in search as their own entries**: type "Medellín" and pick
+    either *Medellín* or *Medellín metro area*. Same for Paris, Tokyo and friends.
+  - **Two cache files per city**: `static/cities/R1343264.json` for the city and a
+    separate file for its metro area (e.g. `static/cities/metro-R1343264.json`), each
+    with its own outline, population, density, climate, transit and parks.
+  - Use the EU's free **GHSL Urban Centre Database** for the outlines: one
+    worldwide definition of "the continuous built-up blob", so Medellín's metro and
+    Paris's metro are measured the same way. One download, no free services hammered.
+  - Bonus fun fact: "Paris is 105 km². Greater Paris would swallow it many times over."
+
 ## Stack
 
 SvelteKit 2 + Svelte 5, Tailwind 4, MapLibre with OpenFreeMap tiles, resvg-wasm for
