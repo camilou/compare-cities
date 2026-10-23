@@ -501,13 +501,14 @@
 			display: none;
 		}
 	}
+	/* Phones: just the logo and a one-line wordmark. Share lives under the headline,
+	   and dark mode follows the phone's own setting. */
 	@media (max-width: 520px) {
-		.wordmark {
-			font-size: 1.15rem;
-			line-height: 0.95;
+		.actions {
+			display: none;
 		}
-		.wordmark span {
-			display: block;
+		.wordmark {
+			font-size: clamp(1.25rem, 6.4vw, 1.6rem);
 		}
 	}
 	.stage {
