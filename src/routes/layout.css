@@ -1,0 +1,132 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/bricolage-grotesque/standard.css';
+@import 'maplibre-gl/dist/maplibre-gl.css';
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@theme {
+	--font-sans: 'Bricolage Grotesque Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+/*
+ * "Citrus" two-ink palette: city A prints in violet, city B in tangerine, on pale
+ * lemon paper. Both inks are validated for colour-blind separation and contrast in
+ * light and dark mode. The map texture takes its tint from the same two inks.
+ */
+:root {
+	--color-sun: #ffc23a;
+	--color-glass: color-mix(in srgb, var(--color-card) 90%, transparent);
+	--carto-a: color-mix(in srgb, var(--color-a) 15%, transparent);
+	--carto-b: color-mix(in srgb, var(--color-b) 24%, transparent);
+	--shadow: 0 10px 30px -14px color-mix(in srgb, var(--color-ink) 45%, transparent);
+}
+:root[data-theme='dark'] {
+	--carto-a: color-mix(in srgb, var(--color-a) 22%, transparent);
+	--carto-b: color-mix(in srgb, var(--color-b) 26%, transparent);
+	--shadow: 0 10px 30px -12px rgb(0 0 0 / 0.55);
+}
+:root {
+	--color-paper: #fbf7e4;
+	--color-card: #ffffff;
+	--color-ink: #2a2140;
+	--color-muted: #6a6080;
+	--color-line: #ece5cb;
+	--color-a: #6a3df5;
+	--color-a-soft: #ebe4ff;
+	--color-b: #e5620a;
+	--color-b-soft: #fde6d3;
+	--color-b-text: #b34a06;
+	--color-error: #c0392b;
+	color-scheme: light;
+}
+:root[data-theme='dark'] {
+	--color-paper: #1d1830;
+	--color-card: #2a2342;
+	--color-ink: #f3eefc;
+	--color-muted: #b2a8cc;
+	--color-line: #3d3460;
+	--color-a: #8a66ff;
+	--color-a-soft: #382c66;
+	--color-b: #e66016;
+	--color-b-soft: #4a2a1c;
+	--color-b-text: #ff9d5c;
+	--color-error: #ff8a7a;
+	color-scheme: dark;
+}
+
+@layer base {
+	html {
+		-webkit-tap-highlight-color: transparent;
+		background: var(--color-paper);
+	}
+	body {
+		position: relative;
+		isolation: isolate;
+		min-height: 100svh;
+		background: var(--color-paper);
+		color: var(--color-ink);
+		font-family: var(--font-sans);
+		font-size: 1rem;
+		line-height: 1.55;
+		font-optical-sizing: auto;
+		-webkit-font-smoothing: antialiased;
+		transition: background-color 0.25s;
+	}
+	/* Cartographic texture over the whole page: contours in ink A, routes and towns in ink B. */
+	body::before,
+	body::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
+		z-index: -1;
+		mask-repeat: repeat;
+		mask-position: top center;
+		mask-size: 1600px 1000px;
+	}
+	body::before {
+		background: var(--carto-a);
+		mask-image: url('/carto/contours.svg');
+	}
+	body::after {
+		background: var(--carto-b);
+		mask-image: url('/carto/marks.svg');
+	}
+	:focus-visible {
+		outline: 3px solid var(--color-sun);
+		outline-offset: 2px;
+		border-radius: 6px;
+	}
+	.tnum {
+		font-variant-numeric: tabular-nums;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		transition-duration: 0.01ms !important;
+	}
+}
+
+.maplibregl-ctrl-attrib {
+	font-size: 11px;
+}
+[data-theme='dark'] .maplibregl-ctrl-group {
+	background: var(--color-card);
+}
+[data-theme='dark'] .maplibregl-ctrl-group button + button {
+	border-top-color: var(--color-line);
+}
+[data-theme='dark'] .maplibregl-ctrl button .maplibregl-ctrl-icon {
+	filter: invert(1);
+}
+[data-theme='dark'] .maplibregl-ctrl-attrib {
+	background: rgb(32 37 74 / 0.8);
+	color: var(--color-muted);
+}
+[data-theme='dark'] .maplibregl-ctrl-attrib a {
+	color: var(--color-muted);
+}
