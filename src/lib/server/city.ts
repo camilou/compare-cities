@@ -152,6 +152,19 @@ const near = (c: { lat: number; lon: number } | undefined, lat: number, lon: num
 
 // ---- Handler ----------------------------------------------------------------
 
+/**
+ * The name people actually use. Wikipedia's title wins when it's the same name with
+ * accents ("Bogota" → "Bogotá") or a shorter form inside the official one
+ * ("Special Capital Region of Jakarta" → "Jakarta", "Guangzhou City" → "Guangzhou").
+ * "Mexico City" and "New York" are left alone.
+ */
+export function displayName(official: string, wikiTitle?: string) {
+	if (!wikiTitle) return official;
+	const title = wikiTitle.replace(/\s*\(.*\)$/, '').replace(/,.*$/, '').trim();
+	const plain = (t: string) => ` ${t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()} `;
+	return plain(official).includes(plain(title).trimEnd() + ' ') && title.length <= official.length ? title : official;
+}
+
 export async function getCity(id: string | null, q: string | null, platform: App.Platform | undefined): Promise<City> {
 	const place = await findPlace(id, q, platform);
 	const tags = place.extratags ?? {};
@@ -183,9 +196,7 @@ export async function getCity(id: string | null, q: string | null, platform: App
 	wikiTitle ??= tags.wikipedia?.startsWith('en:') ? tags.wikipedia.slice(3) : undefined;
 	const summary = wikiTitle ? (await wikipedia(wikiTitle, platform).catch(() => undefined))?.summary : undefined;
 
-	// Prefer "Bogotá" (Wikipedia) over "Bogota" (Nominatim English) when they are the same name.
-	const plain = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-	const name = wikiTitle && plain(wikiTitle) === plain(place.name) ? wikiTitle : place.name;
+	const name = displayName(place.name, wikiTitle);
 
 	return {
 		id: `${place.osm_type[0].toUpperCase()}${place.osm_id}`,

@@ -79,7 +79,8 @@
 		loading[slot] = true;
 		errors[slot] = undefined;
 		try {
-			const city: City = await fetchCity(pick);
+			let city: City = await fetchCity(pick);
+			if (!city.land) city = await dryLand(city);
 			if (token !== tokens[slot]) return;
 			const shape = mainland(city.geometry, city.center);
 			const side: Side = { city, shape, display: simplifyTo(shape, DRAW_VERTICES), areaKm2: areaKm2(shape) };
@@ -93,6 +94,20 @@
 			return false;
 		} finally {
 			if (token === tokens[slot]) loading[slot] = false;
+		}
+	}
+
+	/** Live lookups aren't pre-clipped like cached cities: remove the sea here, quickly or not at all. */
+	async function dryLand(city: City): Promise<City> {
+		try {
+			const { clipToLand, fetchTile } = await import('$lib/land');
+			const clipped = await Promise.race([
+				clipToLand(city.geometry, fetchTile, { maxTiles: 36, maxZoom: 12 }),
+				new Promise<never>((_, reject) => setTimeout(() => reject(new Error('slow')), 5000))
+			]);
+			return clipped.touched ? { ...city, geometry: clipped.geometry, land: true } : city;
+		} catch {
+			return city; // keep the official outline rather than block the page
 		}
 	}
 
