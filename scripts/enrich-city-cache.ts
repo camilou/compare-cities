@@ -15,19 +15,25 @@ const DIR = new URL('../static/cities/', import.meta.url);
 const PASSES = (process.argv[2] ?? 'climate,transit,green').split(',');
 const UA = { headers: { 'User-Agent': 'CompareCities/0.2 (city cache enrichment)' } };
 const GREEN_BYTES_PER_DAY = 900e6;
+const GREEN_MAX_KM2 = 5000; // beyond this the park download is a province's worth of forest
+const INDEX = new URL('../src/lib/data/city-index.json', import.meta.url);
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const log = (pass: string, msg: string) => console.log(`[${new Date().toISOString().slice(11, 19)} ${pass}] ${msg}`);
 
-function files(): { file: URL; pop: number }[] {
+/** Cached city files, most famous first (the index is kept in that order). */
+function files(): { file: URL }[] {
+	let order: string[] = [];
+	try {
+		order = (JSON.parse(readFileSync(INDEX, 'utf8')) as [string][]).map((r) => r[0]);
+	} catch {
+		/* index being rewritten: fall back to directory order */
+	}
+	const rank = new Map(order.map((id, i) => [id, i]));
 	return readdirSync(DIR)
 		.filter((f) => f.endsWith('.json'))
-		.map((f) => {
-			const file = new URL(f, DIR);
-			const c = JSON.parse(readFileSync(file, 'utf8')) as City;
-			return { file, pop: c.facts.population?.value ?? 0 };
-		})
-		.sort((a, b) => b.pop - a.pop);
+		.sort((a, b) => (rank.get(a.slice(0, -5)) ?? 1e9) - (rank.get(b.slice(0, -5)) ?? 1e9))
+		.map((f) => ({ file: new URL(f, DIR) }));
 }
 
 /** Read-modify-write with no await in between, so parallel passes never clobber each other. */
@@ -73,6 +79,9 @@ const passes: Pass[] = [
 		run: async (c) => {
 			const area = areaId(c.id);
 			if (!area) return undefined;
+			const shape = mainland(c.geometry, c.center);
+			const km2 = areaKm2(shape);
+			if (km2 > GREEN_MAX_KM2) return { green: null };
 			if (Date.now() - greenDayStart > 86_400_000) (greenBytes = 0), (greenDayStart = Date.now());
 			if (greenBytes > GREEN_BYTES_PER_DAY) {
 				const ms = 86_400_000 - (Date.now() - greenDayStart);
@@ -82,8 +91,7 @@ const passes: Pass[] = [
 			}
 			const r = await overpass(greenQuery(area), UA);
 			greenBytes += JSON.stringify(r).length;
-			const shape = mainland(c.geometry, c.center);
-			return { green: measureGreen(r, shape, areaKm2(shape)) };
+			return { green: measureGreen(r, shape, km2) };
 		}
 	}
 ];
@@ -94,13 +102,13 @@ async function loop(p: Pass) {
 		let did = 0;
 		for (const { file } of files()) {
 			const c = JSON.parse(readFileSync(file, 'utf8')) as City;
-			if (c[p.key]) continue;
+			if (c[p.key] !== undefined) continue; // null counts as done (too large to measure)
 			const t0 = Date.now();
 			const fields = await retry(p.key, c.name, () => p.run(c));
 			if (fields) {
 				patch(file, fields);
 				did++;
-				log(p.key, `${c.name}: ${JSON.stringify(fields[p.key]).slice(0, 90)} (${Math.round((Date.now() - t0) / 1000)}s)`);
+				log(p.key, `${c.name}: ${JSON.stringify(fields[p.key] ?? 'too large, skipped').slice(0, 90)} (${Math.round((Date.now() - t0) / 1000)}s)`);
 			}
 			await wait(p.gap);
 		}

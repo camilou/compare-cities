@@ -61,6 +61,7 @@ export function cityTransit(city: City): Promise<TransitStats> {
  */
 export function cityGreen(city: City, shape: Area, km2: number): Promise<GreenStats> {
 	if (city.green) return Promise.resolve(city.green);
+	if (city.green === null || km2 > 5000) return Promise.reject(new Error('Too large to measure parks.'));
 	return remembered(`green:v1:${city.id}`, async () => {
 		const area = areaId(city.id);
 		if (!area) throw new Error('No boundary to measure.');

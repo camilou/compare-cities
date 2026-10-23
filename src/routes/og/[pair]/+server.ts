@@ -11,7 +11,8 @@ export const GET: RequestHandler = async (event) => {
 	if (!m) error(404, 'Not found');
 
 	const cache = event.platform?.caches?.default;
-	const key = new Request(event.url.toString());
+	// Key on the path only, so junk query strings can't force fresh renders.
+	const key = new Request(`${event.url.origin}${event.url.pathname}`);
 	const hit = await cache?.match(key).catch(() => undefined);
 	if (hit) return hit;
 

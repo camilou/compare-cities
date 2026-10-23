@@ -1,5 +1,16 @@
 <script lang="ts" module>
 	export type Pick = { id: string } | { q: string };
+
+	type IndexRow = [id: string, name: string, cc: string, context: string, pop: number];
+	let index: Promise<IndexRow[]> | undefined;
+	// The cached-city index loads on first focus, then search is instant.
+	const loadIndex = () =>
+		(index ??= import('$lib/data/city-index.json').then((m) => m.default as IndexRow[]).catch(() => []));
+	const fold = (t: string) =>
+		t
+			.normalize('NFD')
+			.replace(/[\u0300-\u036f]/g, '')
+			.toLowerCase();
 </script>
 
 <script lang="ts">
@@ -22,6 +33,8 @@
 	} = $props();
 
 	const POPULAR = ['Bogotá', 'Medellín', 'Paris', 'New York City', 'London', 'Tokyo', 'Mexico City', 'Madrid', 'Buenos Aires', 'Singapore'];
+	let rows = $state<IndexRow[]>([]);
+	let local = $state<Suggestion[]>([]);
 
 	const uid = $props.id();
 	let query = $state('');
@@ -34,13 +47,34 @@
 	let input: HTMLInputElement;
 
 	type Option = { key: string; title: string; sub?: string; pick: Pick };
-	const options = $derived<Option[]>(
-		query.trim().length >= 2
-			? results.map((r) => ({ key: r.id, title: r.name, sub: r.context, pick: { id: r.id } }))
-			: POPULAR.filter((p) => p !== value).map((p) => ({ key: p, title: p, pick: { q: p } }))
-	);
+	const options = $derived.by<Option[]>(() => {
+		if (query.trim().length < 2) {
+			return POPULAR.filter((p) => p !== value).map((p) => {
+				const row = rows.find((r) => fold(r[1]) === fold(p) || (p === 'New York City' && r[1] === 'New York'));
+				return { key: p, title: p, sub: row?.[3], pick: row ? { id: row[0] } : { q: p } };
+			});
+		}
+		const seen = new Set(local.map((l) => l.id));
+		return [...local, ...results.filter((r) => !seen.has(r.id))]
+			.slice(0, 8)
+			.map((r) => ({ key: r.id, title: r.name, sub: r.context, pick: { id: r.id } }));
+	});
+
+	function searchLocal(q: string) {
+		const f = fold(q.trim());
+		if (f.length < 2) return (local = []);
+		local = rows
+			.filter((r) => {
+				const n = fold(r[1]);
+				return n.startsWith(f) || n.includes(` ${f}`) || n.includes(`-${f}`);
+			})
+			.sort((a, b) => Number(fold(b[1]).startsWith(f)) - Number(fold(a[1]).startsWith(f)) || b[4] - a[4])
+			.slice(0, 6)
+			.map((r) => ({ id: r[0], name: r[1], context: r[3], countryCode: r[2], kind: 'cached' }));
+	}
 
 	function search(q: string) {
+		searchLocal(q);
 		clearTimeout(timer);
 		controller?.abort();
 		if (q.trim().length < 2) {
@@ -110,7 +144,13 @@
 			open = true;
 			search(query);
 		}}
-		onfocus={() => (open = true)}
+		onfocus={() => {
+			open = true;
+			loadIndex().then((r) => {
+				rows = r;
+				if (query) searchLocal(query);
+			});
+		}}
 		onblur={() => setTimeout(() => (open = false), 120)}
 		{onkeydown}
 	/>

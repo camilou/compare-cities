@@ -7,6 +7,7 @@
 // Resumable: cities already in static/cities/ are skipped.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import type { City } from '../src/lib/types.ts';
+import { areaKm2, mainland } from '../src/lib/geo.ts';
 
 const COUNT = Number(process.argv[2] ?? 1000);
 const BASE = process.argv[3] ?? 'http://localhost:5173';
@@ -43,9 +44,18 @@ const TYPES = [
 	'Q15284' // municipality
 ];
 
+// Where Wikidata's OSM link points at a much larger district than the city
+// people mean (Bogotá's includes the rural Sumapaz páramo), pin the urban boundary.
+const OVERRIDES: Record<string, string> = {
+	Q2841: 'R7426387' // Bogotá → "Bogotá ciudad", not the whole Distrito Capital
+};
+
+const REGION = /\b(Division|Province|Region|Prefecture|Metropolitan|Greater|Governorate|Oblast|Department)\b/i;
+
 interface Candidate {
 	q: string;
 	pop: number;
+	links: number; // Wikipedia language editions: a decent proxy for "cities people search for"
 	osm?: string;
 	name?: string;
 }
@@ -62,18 +72,19 @@ async function candidates(): Promise<Candidate[]> {
 	const by = new Map<string, Candidate>();
 	for (const t of TYPES) {
 		const rows = await sparql(
-			`SELECT ?c ?pop ?osm WHERE { ?c wdt:P31 wd:${t} ; wdt:P1082 ?pop . OPTIONAL { ?c wdt:P402 ?osm } FILTER(?pop > 300000) }`
+			`SELECT ?c ?pop ?osm ?links WHERE { ?c wdt:P31 wd:${t} ; wdt:P1082 ?pop ; wikibase:sitelinks ?links . OPTIONAL { ?c wdt:P402 ?osm } FILTER(?pop > 200000) }`
 		).catch((e) => (console.log(`  type ${t} failed: ${e.message}`), []));
 		for (const r of rows) {
 			const q = r.c.value.split('/').pop()!;
 			const pop = Number(r.pop.value);
 			const prev = by.get(q);
-			by.set(q, { q, pop: Math.max(pop, prev?.pop ?? 0), osm: r.osm?.value ?? prev?.osm });
+			by.set(q, { q, pop: Math.max(pop, prev?.pop ?? 0), links: Number(r.links.value), osm: OVERRIDES[q]?.slice(1) ?? r.osm?.value ?? prev?.osm });
 		}
 		console.log(`type ${t}: ${rows.length} rows, ${by.size} cities so far`);
 		await wait(500);
 	}
-	const list = [...by.values()].sort((a, b) => b.pop - a.pop);
+	// Most-documented first: Lyon before a 10,000 km² prefecture of the same population.
+	const list = [...by.values()].sort((a, b) => b.links - a.links || b.pop - a.pop);
 	// English labels, 50 at a time.
 	for (let i = 0; i < list.length; i += 50) {
 		const ids = list.slice(i, i + 50).map((c) => c.q).join('|');
@@ -140,9 +151,18 @@ for (const c of list) {
 		let city: City;
 		if (existsSync(file)) city = JSON.parse(readFileSync(file, 'utf8'));
 		else {
-			const res = await fetch(`${BASE}/api/city?id=${id}`);
-			if (!res.ok) throw new Error(`api ${res.status}`);
+			let res: Response | undefined;
+			for (let attempt = 0; attempt < 3 && !res?.ok; attempt++) {
+				res = await fetch(`${BASE}/api/city?id=${id}`).catch(() => undefined);
+				if (!res?.ok) await wait(5000 * (attempt + 1));
+			}
+			if (!res?.ok) throw new Error(`api ${res?.status ?? 'unreachable'}`);
 			city = shrink((await res.json()) as City);
+			// Regions and metro areas ("Dhaka Division", "Greater Mexico City") aren't the city people mean.
+			const km2 = areaKm2(mainland(city.geometry, city.center));
+			if (REGION.test(city.name) && km2 > 2000 && !OVERRIDES[c.q]) throw new Error(`looks like a region (${Math.round(km2)} km²)`);
+			// Thin facts usually mean Wikidata rate-limited the API; better to retry later.
+			if (!city.facts.population && !city.facts.founded) throw new Error('facts missing, will retry on next run');
 			writeFileSync(file, JSON.stringify(city));
 			await wait(1200); // the API made Nominatim + Wikidata calls on our behalf
 		}
@@ -158,6 +178,6 @@ for (const c of list) {
 		console.log(`  skip ${c.name} ${id}: ${(e as Error).message}`);
 	}
 }
-index.sort((a, b) => b[4] - a[4]);
+// Kept in fame order: the enrichment script works through it top-down.
 writeFileSync(INDEX, JSON.stringify(index));
 console.log(`done: ${index.length} cities`);
